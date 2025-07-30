@@ -194,7 +194,7 @@ export default function ProfileManagement() {
                 Basic Information
               </h3>
             </div>
-            <div className="px-4 py-5 sm:p-6">
+        <div className="px-4 py-5 sm:p-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Vendor Name</label>
@@ -215,11 +215,11 @@ export default function ProfileManagement() {
                     dangerouslySetInnerHTML={{ __html: profile?.vendor_description || 'Not provided' }}
                   />
                 </div>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Contact Information */}
+            {/* Contact Information */}
           <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
             <div className="px-4 py-4 sm:py-5 sm:px-6 bg-gradient-to-r from-green-50 to-emerald-50 border-b border-gray-200">
               <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center justify-center sm:justify-start">
@@ -242,12 +242,12 @@ export default function ProfileManagement() {
                   <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
                     {profile?.contact_email || 'Not provided'}
                   </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Address Information */}
+            {/* Address Information */}
           <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
             <div className="px-4 py-4 sm:py-5 sm:px-6 bg-gradient-to-r from-purple-50 to-violet-50 border-b border-gray-200">
               <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center justify-center sm:justify-start">
@@ -289,12 +289,12 @@ export default function ProfileManagement() {
                   <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
                     {profile?.country || 'Not provided'}
                   </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Business Information */}
+            {/* Business Information */}
           <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
             <div className="px-4 py-4 sm:py-5 sm:px-6 bg-gradient-to-r from-orange-50 to-amber-50 border-b border-gray-200">
               <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center justify-center sm:justify-start">
@@ -329,12 +329,12 @@ export default function ProfileManagement() {
                   <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
                     {profile?.availability || 'Not provided'}
                   </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Certification & Insurance */}
+            {/* Certification & Insurance */}
           <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
             <div className="px-4 py-4 sm:py-5 sm:px-6 bg-gradient-to-r from-indigo-50 to-blue-50 border-b border-gray-200">
               <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center justify-center sm:justify-start">
@@ -380,8 +380,8 @@ export default function ProfileManagement() {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+                  </div>
+                </div>
 
         {/* Right Sidebar */}
         <div className="space-y-6">
