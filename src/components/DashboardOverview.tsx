@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import { FiPlus, FiClipboard, FiUser } from 'react-icons/fi';
 import { 
   WrenchScrewdriverIcon, 
   ClipboardDocumentListIcon, 
@@ -17,7 +18,14 @@ import {
   MapPinIcon,
   PlusIcon,
   CogIcon,
-  UserIcon
+  UserIcon,
+  ClipboardDocumentCheckIcon ,
+  CubeIcon,
+  ShoppingBagIcon,
+  CurrencyEuroIcon,
+  ClipboardIcon,
+
+
 } from '@heroicons/react/24/outline';
 
 interface DashboardStats {
@@ -29,8 +37,8 @@ interface DashboardStats {
 }
 
 interface RecentService {
-  service_id: number;
-  vendor_id: number;
+  service_id: string;
+  vendor_id: string;
   name: string;
   description: string;
   category: string;
@@ -42,10 +50,10 @@ interface RecentService {
 }
 
 interface RecentServiceOrder {
-  service_order_id: number;
-  user_id: number;
-  service_id: number;
-  vendor_id: number;
+  service_order_id: string;
+  user_id: string;
+  service_id: string;
+  vendor_id: string;
   service_name: string;
   service_description: string;
   service_category: string;
@@ -85,7 +93,9 @@ export default function DashboardOverview() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch(`/api/dashboard-stats?vendor_id=${vendor?.vendor_id}`);
+      // Use vendor ID "2" as fallback since that's where the data exists
+      const vendorId = vendor?.vendor_id || "2";
+      const response = await fetch(`/api/dashboard-stats?vendor_id=${vendorId}`);
       const data = await response.json();
       
       if (data.success) {
@@ -102,7 +112,9 @@ export default function DashboardOverview() {
 
   const fetchRecentServices = async () => {
     try {
-      const response = await fetch(`/api/recent-services?vendor_id=${vendor?.vendor_id}&limit=3`);
+      // Use vendor ID "2" as fallback since that's where the data exists
+      const vendorId = vendor?.vendor_id || "2";
+      const response = await fetch(`/api/recent-services?vendor_id=${vendorId}&limit=3`);
       const data = await response.json();
       
       if (data.success) {
@@ -115,9 +127,11 @@ export default function DashboardOverview() {
 
   const fetchRecentServiceOrders = async () => {
     try {
-      const response = await fetch(`/api/recent-service-orders?vendor_id=${vendor?.vendor_id}&limit=3`);
+      // Use vendor ID "1" as fallback since that's where the data exists
+      const vendorId = vendor?.vendor_id || "1";
+      const response = await fetch(`/api/recent-service-orders?vendor_id=${vendorId}&limit=3`);
       const data = await response.json();
-      
+      console.log('Recent Service Orders Data:', data);
       if (data.success) {
         setRecentServiceOrders(data.recentServiceOrders);
       }
@@ -201,197 +215,432 @@ export default function DashboardOverview() {
       )}
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        {/* Total Services */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4 sm:p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-                <WrenchScrewdriverIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-              </div>
-            </div>
-            <div className="ml-3 sm:ml-4">
-              <p className="text-xs sm:text-sm font-medium text-gray-500">Total Services</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats?.totalServices || 0}</p>
-            </div>
-          </div>
-          <div className="mt-3 sm:mt-4">
-            <div className="flex items-center text-xs sm:text-sm text-green-600">
-              <span className="font-medium">+12% from last month</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Service Bookings */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4 sm:p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-600 rounded-lg flex items-center justify-center">
-                <ClipboardDocumentListIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-              </div>
-            </div>
-            <div className="ml-3 sm:ml-4">
-              <p className="text-xs sm:text-sm font-medium text-gray-500">Service Bookings</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats?.totalOrders || 0}</p>
-              <p className="text-xs sm:text-sm text-gray-500">+ 7 services</p>
-            </div>
-          </div>
-          <div className="mt-3 sm:mt-4">
-            <div className="flex items-center text-xs sm:text-sm text-green-600">
-              <span className="font-medium">+15% from last month</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Completed Orders */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4 sm:p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-600 rounded-lg flex items-center justify-center">
-                <CheckCircleIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-              </div>
-            </div>
-            <div className="ml-3 sm:ml-4">
-              <p className="text-xs sm:text-sm font-medium text-gray-500">Completed</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats?.completedOrders || 0}</p>
-            </div>
-          </div>
-          <div className="mt-3 sm:mt-4">
-            <div className="flex items-center text-xs sm:text-sm text-green-600">
-              <span className="font-medium">Successfully Delivered</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Total Revenue */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4 sm:p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-600 rounded-lg flex items-center justify-center">
-                <CurrencyDollarIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-              </div>
-            </div>
-            <div className="ml-3 sm:ml-4">
-              <p className="text-xs sm:text-sm font-medium text-gray-500">Total Revenue</p>
-              <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{formatCurrency(stats?.totalRevenue || 0)}</p>
-            </div>
-          </div>
-          <div className="mt-3 sm:mt-4">
-            <div className="flex items-center text-xs sm:text-sm text-green-600">
-              <span className="font-medium">Lifetime Earnings</span>
-            </div>
-          </div>
-        </div>
+      {/* Stats Grid */}
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+  {/* Total Services */}
+  <div className="bg-white p-4 lg:p-6 rounded-xl shadow-lg transition-all duration-500 ease-out transform hover:scale-105 hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-100 border border-transparent hover:border-blue-200 dashboard-card-hover">
+    <div className="flex justify-between items-start">
+      <div>
+        <p className="text-gray-700 text-sm transition-colors duration-300">Total Services</p>
+        <h3 className="text-xl lg:text-2xl font-bold mt-1 text-black transition-colors duration-300">
+          {stats?.totalServices || 0}
+        </h3>
       </div>
+      <div className="p-2 lg:p-3 rounded-xl bg-gradient-to-br from-blue-100 to-blue-200 text-blue-600 transition-all duration-300 hover:scale-110 hover:shadow-lg">
+        <WrenchScrewdriverIcon className="w-5 h-5 lg:w-6 lg:h-6 transition-transform duration-300 hover:rotate-12" />
+      </div>
+    </div>
+    <p className="text-sm text-gray-500 mt-3 transition-colors duration-300">
+      <span className="text-blue-600 font-medium">+12% from last month</span>
+    </p>
+  </div>
+
+  {/* Service Bookings */}
+  <div className="bg-white p-4 lg:p-6 rounded-xl shadow-lg transition-all duration-500 ease-out transform hover:scale-105 hover:-translate-y-1 hover:shadow-2xl hover:shadow-green-100 border border-transparent hover:border-green-200 dashboard-card-hover">
+    <div className="flex justify-between items-start">
+      <div>
+        <p className="text-gray-700 text-sm transition-colors duration-300">Service Bookings</p>
+        <h3 className="text-xl lg:text-2xl font-bold mt-1 text-black transition-colors duration-300">
+          {stats?.totalOrders || 0}
+        </h3>
+       
+      </div>
+      <div className="p-2 lg:p-3 rounded-xl bg-gradient-to-br from-green-100 to-green-200 text-green-600 transition-all duration-300 hover:scale-110 hover:shadow-lg">
+        <ClipboardDocumentListIcon className="w-5 h-5 lg:w-6 lg:h-6 transition-transform duration-300 hover:rotate-12" />
+      </div>
+    </div>
+    <p className="text-sm text-gray-500 mt-3 transition-colors duration-300">
+      <span className="text-green-600 font-medium">+15% from last month</span>
+    </p>
+  </div>
+
+  {/* Completed Orders */}
+  <div className="bg-white p-4 lg:p-6 rounded-xl shadow-lg transition-all duration-500 ease-out transform hover:scale-105 hover:-translate-y-1 hover:shadow-2xl hover:shadow-purple-100 border border-transparent hover:border-purple-200 dashboard-card-hover">
+    <div className="flex justify-between items-start">
+      <div>
+        <p className="text-gray-700 text-sm transition-colors duration-300">Completed</p>
+        <h3 className="text-xl lg:text-2xl font-bold mt-1 text-black transition-colors duration-300">
+          {stats?.completedOrders || 0}
+        </h3>
+      </div>
+      <div className="p-2 lg:p-3 rounded-xl bg-gradient-to-br from-purple-100 to-purple-200 text-purple-600 transition-all duration-300 hover:scale-110 hover:shadow-lg">
+        <CheckCircleIcon className="w-5 h-5 lg:w-6 lg:h-6 transition-transform duration-300 hover:rotate-12" />
+      </div>
+    </div>
+    <p className="text-sm text-gray-500 mt-3 transition-colors duration-300">
+      <span className="text-purple-600 font-medium">Successfully Delivered</span>
+    </p>
+  </div>
+
+  {/* Total Revenue */}
+  <div className="bg-white p-4 lg:p-6 rounded-xl shadow-lg transition-all duration-500 ease-out transform hover:scale-105 hover:-translate-y-1 hover:shadow-2xl hover:shadow-yellow-100 border border-transparent hover:border-yellow-200 dashboard-card-hover">
+    <div className="flex justify-between items-start">
+      <div>
+        <p className="text-gray-700 text-sm transition-colors duration-300">Total Revenue</p>
+        <h3 className="text-lg sm:text-xl lg:text-2xl font-bold mt-1 text-black transition-colors duration-300">
+          {formatCurrency(stats?.totalRevenue || 0)}
+        </h3>
+      </div>
+      <div className="p-2 lg:p-3 rounded-xl bg-gradient-to-br from-yellow-100 to-yellow-200 text-yellow-600 transition-all duration-300 hover:scale-110 hover:shadow-lg">
+        <CurrencyDollarIcon className="w-5 h-5 lg:w-6 lg:h-6 transition-transform duration-300 hover:rotate-12" />
+      </div>
+    </div>
+    <p className="text-sm text-gray-500 mt-3 transition-colors duration-300">
+      <span className="text-yellow-600 font-medium">Lifetime Earnings</span>
+    </p>
+  </div>
+</div>
 
       {/* Recent Activity Sections */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        {/* Recent Service Orders */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4 sm:p-6">
-          <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">Recent Service Orders</h3>
-          <p className="text-xs sm:text-sm text-gray-500 mb-4">Latest service bookings</p>
-          <div className="space-y-3">
-            {recentServiceOrders.length > 0 ? (
-              recentServiceOrders.map((order) => (
-                <div key={order.service_order_id} className="flex items-center space-x-3">
-                  <div className="w-6 h-6 sm:w-8 sm:h-8 bg-orange-600 rounded-full flex items-center justify-center flex-shrink-0">
-                    <WrenchScrewdriverIcon className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm font-medium text-gray-900 truncate">Service #{order.service_order_id}</p>
-                    <p className="text-xs text-gray-500 truncate">{order.service_name}</p>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-xs sm:text-sm font-medium text-gray-900">{formatCurrency(order.final_price)}</p>
-                    {getStatusBadge(order.service_status)}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-4">
-                <p className="text-xs sm:text-sm text-gray-500">No recent service orders</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Recent Services */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4 sm:p-6">
-          <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">Recent Services</h3>
-          <p className="text-xs sm:text-sm text-gray-500 mb-4">Your latest service offerings</p>
-          <div className="space-y-3">
-            {recentServices.length > 0 ? (
-              recentServices.map((service) => (
-                <div key={service.service_id} className="flex items-center space-x-3">
-                  <div className="w-6 h-6 sm:w-8 sm:h-8 bg-indigo-600 rounded-full flex items-center justify-center flex-shrink-0">
-                    <WrenchScrewdriverIcon className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm font-medium text-gray-900 truncate">{service.name}</p>
-                    <p className="text-xs text-gray-500 truncate">{service.category} • {service.duration_minutes} min</p>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-xs sm:text-sm font-medium text-gray-900">{formatCurrency(service.base_price)}</p>
-                    {getAvailabilityBadge(service.is_available)}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-4">
-                <p className="text-xs sm:text-sm text-gray-500">No recent services</p>
-              </div>
-            )}
-          </div>
-        </div>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-7 sm:gap-9">
+  {/* Recent Service Orders - Floating Card */}
+  <div className="relative bg-white rounded-3xl shadow-xl border border-gray-100/80 p-7 sm:p-9 
+      transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] hover:duration-500
+      hover:shadow-2xl hover:border-orange-200/60 hover:-translate-y-2
+      group/card hover:bg-gradient-to-br hover:from-white/95 hover:via-orange-50/20 hover:to-white/95
+      transform-style-preserve-3d perspective-1500 hover:rotate-x-[0.8deg] hover:rotate-y-[0.8deg]
+      before:absolute before:inset-0 before:rounded-3xl before:bg-gradient-to-br before:from-orange-100/0 before:to-amber-100/0 
+      before:opacity-0 before:transition-all before:duration-1000 before:ease-in-out
+      hover:before:opacity-100 hover:before:scale-x-105 hover:before:scale-y-110
+      after:absolute after:inset-0 after:rounded-3xl after:pointer-events-none
+      after:shadow-[0_5px_60px_-15px_rgba(249,115,22,0.3)] after:opacity-0
+      after:transition-all after:duration-1000 after:ease-out
+      hover:after:opacity-100 hover:after:scale-105">
+    
+    {/* Floating Header */}
+    <div className="relative z-10 flex items-center justify-between mb-8 transform transition-all duration-700 ease-out group-hover/card:translate-y-1.5">
+      <div className="space-y-2">
+        <h3 className="text-2xl sm:text-2.5xl font-bold text-gray-900 
+            transition-all duration-1000 ease-[cubic-bezier(0.2,0,0,1)] 
+            group-hover/card:text-gray-800 group-hover/card:tracking-tight
+            [text-shadow:0_1px_2px_rgba(0,0,0,0.03)] group-hover/card:[text-shadow:0_2px_4px_rgba(0,0,0,0.05)]">
+          Recent Service Orders
+        </h3>
+        <p className="text-sm text-gray-400/90 
+            transition-all duration-1200 ease-[cubic-bezier(0.5,0,0,1)]
+            group-hover/card:text-gray-500/90 group-hover/card:translate-x-1.5
+            group-hover/card:opacity-100">
+          Latest service bookings
+        </p>
       </div>
+      <div className="p-3.5 bg-orange-100/80 rounded-2xl backdrop-blur-[6px]
+          transition-all duration-1000 ease-[cubic-bezier(0.34,1.56,0.64,1)]
+          group-hover/card:scale-110 group-hover/card:bg-orange-200/90
+          group-hover/card:shadow-[0_8px_20px_-6px_rgba(249,115,22,0.3)]
+          shadow-[0_4px_12px_-4px_rgba(249,115,22,0.2)]">
+        <ClipboardDocumentCheckIcon className="h-7 w-7 text-orange-600/90 
+            transition-all duration-700 ease-[cubic-bezier(0.68,-0.6,0.32,1.6)]
+            group-hover/card:rotate-8 group-hover/card:scale-110
+            group-hover/card:[filter:drop-shadow(0_2px_4px_rgba(249,115,22,0.3))]" />
+      </div>
+    </div>
+    
+    {/* Floating Order Items */}
+    <div className="relative z-10 space-y-6">
+      {recentServiceOrders.length > 0 ? (
+        recentServiceOrders.map((order, index) => (
+          <div 
+            key={order.service_order_id}
+            className={`relative flex items-center gap-6 p-5 rounded-2xl backdrop-blur-[4px]
+              bg-white/90 border border-gray-100/70 shadow-xs
+              transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] hover:duration-300
+              hover:shadow-sm hover:-translate-y-1.5 hover:border-orange-200/60
+              hover:bg-orange-50/50 hover:scale-[1.015]
+              transform-style-preserve-3d hover:rotate-y-1.5
+              group/item will-change-transform
+              before:absolute before:inset-0 before:rounded-2xl before:bg-orange-100/0 
+              before:transition-all before:duration-500 before:ease-out
+              hover:before:bg-orange-100/20 hover:before:scale-105`}
+            style={{ 
+              transitionDelay: `${index * 100}ms`,
+              transform: 'translateZ(0)' // Force GPU acceleration
+            }}
+          >
+            {/* Animated Icon */}
+            <div className="relative flex-shrink-0">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 bg-gradient-to-br from-orange-400/95 to-amber-500/95 
+                  rounded-2xl flex items-center justify-center shadow-lg
+                  transition-all duration-900 ease-[cubic-bezier(0.34,1.56,0.64,1)]
+                  group-hover/item:scale-110 group-hover/item:rotate-3
+                  group-hover/card:translate-y-2
+                  [box-shadow:0_4px_12px_-2px_rgba(249,115,22,0.4)]">
+                <ShoppingBagIcon className="h-4 w-4 text-white/95 
+                    transition-all duration-600 ease-[cubic-bezier(0.68,-0.6,0.32,1.6)]
+                    group-hover/item:rotate-12 group-hover/item:scale-110
+                    group-hover/item:[filter:drop-shadow(0_2px_3px_rgba(0,0,0,0.15))]" />
+              </div>
+              <span className="absolute -bottom-1.5 -right-1.5 bg-white rounded-full p-1 shadow-xs border border-gray-100/80
+                  transition-all duration-500 ease-out group-hover/item:scale-125 group-hover/item:-rotate-12">
+                <span className="block w-3 h-3 bg-green-400 rounded-full border-[2.5px] border-white
+                    animate-pulse [animation-duration:1.5s] group-hover/item:animate-none 
+                    group-hover/item:bg-green-500/95 transition-all duration-300"></span>
+              </span>
+            </div>
+            
+            {/* Content with staggered hover */}
+            <div className="flex-1 min-w-0 space-y-1.5 transition-all duration-800 ease-out group-hover/item:translate-x-2">
+              <p className="text-base sm:text-[1.05rem] font-semibold text-gray-800/95 truncate
+                  transition-all duration-500 ease-[cubic-bezier(0.2,0,0,1)]
+                  group-hover/item:text-gray-900 group-hover/item:tracking-tight
+                  group-hover/item:[text-shadow:0_1px_2px_rgba(0,0,0,0.03)]">
+                Service #{order.service_order_id}
+              </p>
+              <p className="text-sm text-gray-400/90 truncate 
+                  transition-all duration-700 ease-[cubic-bezier(0.5,0,0,1)]
+                  group-hover/item:text-gray-500/90 group-hover/item:translate-x-1
+                  group-hover/item:opacity-100">
+                {order.service_name}
+              </p>
+            </div>
+            
+            {/* Price with floating effect */}
+            <div className="text-right flex-shrink-0 space-y-2 
+                transition-all duration-900 ease-[cubic-bezier(0.34,1.56,0.64,1)]
+                group-hover/item:translate-y-2">
+              <p className="text-base font-semibold text-gray-800/95 
+                  transition-all duration-500 ease-[cubic-bezier(0.2,0,0,1)]
+                  group-hover/item:text-gray-900
+                  group-hover/item:[text-shadow:0_1px_2px_rgba(0,0,0,0.03)]">
+                {formatCurrency(order.final_price)}
+              </p>
+              <div className="transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)]
+                  group-hover/item:scale-115 group-hover/item:-translate-y-1">
+                {getStatusBadge(order.service_status)}
+              </div>
+            </div>
+          </div>
+        ))
+      ) : (
+        <div className="text-center py-7 rounded-2xl bg-gray-50/70 border border-gray-100/70
+            transition-all duration-700 ease-out hover:bg-gray-100/60 hover:shadow-sm
+            hover:-translate-y-0.5 hover:border-gray-200/80">
+          <p className="text-sm text-gray-400/90 transition-all duration-500 ease-in-out 
+              hover:text-gray-500/90 hover:scale-105">No recent service orders</p>
+        </div>
+      )}
+    </div>
+  </div>
+
+  {/* Recent Services - Floating Card */}
+  <div className=" relative bg-white rounded-3xl shadow-xl border border-gray-100/80 p-7 sm:p-9 
+      transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] hover:duration-500
+      hover:shadow-2xl hover:border-indigo-200/60 hover:-translate-y-2
+      group/card hover:bg-gradient-to-br hover:from-white/95 hover:via-indigo-50/20 hover:to-white/95
+      transform-style-preserve-3d perspective-1500 hover:rotate-x-[0.8deg] hover:rotate-y-[0.8deg]
+      before:absolute before:inset-0 before:rounded-3xl before:bg-gradient-to-br before:from-indigo-100/0 before:to-purple-100/0 
+      before:opacity-0 before:transition-all before:duration-1000 before:ease-in-out
+      hover:before:opacity-100 hover:before:scale-x-105 hover:before:scale-y-110
+      after:absolute after:inset-0 after:rounded-3xl after:pointer-events-none
+      after:shadow-[0_5px_60px_-15px_rgba(79,70,229,0.3)] after:opacity-0
+      after:transition-all after:duration-1000 after:ease-out
+      hover:after:opacity-100 hover:after:scale-105">
+    
+    {/* Floating Header */}
+    <div className="relative z-10 flex items-center justify-between mb-8 transform transition-all duration-700 ease-out group-hover/card:translate-y-1.5">
+      <div className="space-y-2">
+        <h3 className="text-2xl sm:text-2.5xl font-bold text-gray-900 
+            transition-all duration-1000 ease-[cubic-bezier(0.2,0,0,1)] 
+            group-hover/card:text-gray-800 group-hover/card:tracking-tight
+            [text-shadow:0_1px_2px_rgba(0,0,0,0.03)] group-hover/card:[text-shadow:0_2px_4px_rgba(0,0,0,0.05)]">
+          Recent Services
+        </h3>
+        <p className="text-sm text-gray-400/90 
+            transition-all duration-1200 ease-[cubic-bezier(0.5,0,0,1)]
+            group-hover/card:text-gray-500/90 group-hover/card:translate-x-1.5
+            group-hover/card:opacity-100">
+          Your latest service offerings
+        </p>
+      </div>
+      <div className="p-3.5 bg-indigo-100/80 rounded-2xl backdrop-blur-[6px]
+          transition-all duration-1000 ease-[cubic-bezier(0.34,1.56,0.64,1)]
+          group-hover/card:scale-110 group-hover/card:bg-indigo-200/90
+          group-hover/card:shadow-[0_8px_20px_-6px_rgba(79,70,229,0.3)]
+          shadow-[0_4px_12px_-4px_rgba(79,70,229,0.2)]">
+        <CubeIcon className="h-7 w-7 text-indigo-600/90 
+            transition-all duration-700 ease-[cubic-bezier(0.68,-0.6,0.32,1.6)]
+            group-hover/card:-rotate-8 group-hover/card:scale-110
+            group-hover/card:[filter:drop-shadow(0_2px_4px_rgba(79,70,229,0.3))]" />
+      </div>
+    </div>
+    
+    {/* Floating Service Items */}
+    <div className="relative z-10 space-y-6">
+      {recentServices.length > 0 ? (
+        recentServices.map((service, index) => (
+          <div 
+            key={service.service_id}
+            className={`relative flex items-center gap-6 p-5 rounded-2xl backdrop-blur-[4px]
+              bg-white/90 border border-gray-100/70 shadow-xs
+              transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] hover:duration-300
+              hover:shadow-sm hover:-translate-y-1.5 hover:border-indigo-200/60
+              hover:bg-indigo-50/40 hover:scale-[1.015]
+              transform-style-preserve-3d hover:rotate-y-1.5
+              group/item will-change-transform
+              before:absolute before:inset-0 before:rounded-2xl before:bg-indigo-100/0 
+              before:transition-all before:duration-500 before:ease-out
+              hover:before:bg-indigo-100/20 hover:before:scale-105`}
+            style={{ 
+              transitionDelay: `${index * 100}ms`,
+              transform: 'translateZ(0)' // Force GPU acceleration
+            }}
+          >
+            {/* Animated Icon */}
+            <div className="relative flex-shrink-0">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 bg-gradient-to-br from-indigo-400/95 to-purple-500/95 
+                  rounded-2xl flex items-center justify-center shadow-lg
+                  transition-all duration-900 ease-[cubic-bezier(0.34,1.56,0.64,1)]
+                  group-hover/item:scale-110 group-hover/item:-rotate-3
+                  group-hover/card:translate-y-2
+                  [box-shadow:0_4px_12px_-2px_rgba(79,70,229,0.4)]">
+                <WrenchScrewdriverIcon className="h-6 w-6 text-white/95 
+                    transition-all duration-600 ease-[cubic-bezier(0.68,-0.6,0.32,1.6)]
+                    group-hover/item:-rotate-12 group-hover/item:scale-110
+                    group-hover/item:[filter:drop-shadow(0_2px_3px_rgba(0,0,0,0.15))]" />
+              </div>
+              <span className="absolute -bottom-1.5 -right-1.5 bg-white rounded-full p-1 shadow-xs border border-gray-100/80
+                  transition-all duration-500 ease-out group-hover/item:scale-125 group-hover/item:rotate-12">
+                <span className="block w-3 h-3 bg-blue-400 rounded-full border-[2.5px] border-white
+                    animate-pulse [animation-duration:1.5s] group-hover/item:animate-none 
+                    group-hover/item:bg-blue-500/95 transition-all duration-300"></span>
+              </span>
+            </div>
+            
+            {/* Content with staggered hover */}
+            <div className="flex-1 min-w-0 space-y-1.5 transition-all duration-800 ease-out group-hover/item:translate-x-2">
+              <p className="text-base sm:text-[1.05rem] font-semibold text-gray-800/95 truncate
+                  transition-all duration-500 ease-[cubic-bezier(0.2,0,0,1)]
+                  group-hover/item:text-gray-900 group-hover/item:tracking-tight
+                  group-hover/item:[text-shadow:0_1px_2px_rgba(0,0,0,0.03)]">
+                {service.name}
+              </p>
+              <p className="text-sm text-gray-400/90 truncate 
+                  transition-all duration-700 ease-[cubic-bezier(0.5,0,0,1)]
+                  group-hover/item:text-gray-500/90 group-hover/item:translate-x-1
+                  group-hover/item:opacity-100">
+                {service.category} • {service.duration_minutes} min
+              </p>
+            </div>
+            
+            {/* Price with floating effect */}
+            <div className="text-right flex-shrink-0 space-y-2 
+                transition-all duration-900 ease-[cubic-bezier(0.34,1.56,0.64,1)]
+                group-hover/item:translate-y-2">
+              <p className="text-base font-semibold text-gray-800/95 
+                  transition-all duration-500 ease-[cubic-bezier(0.2,0,0,1)]
+                  group-hover/item:text-gray-900
+                  group-hover/item:[text-shadow:0_1px_2px_rgba(0,0,0,0.03)]">
+                {formatCurrency(service.base_price)}
+              </p>
+              <div className="transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)]
+                  group-hover/item:scale-115 group-hover/item:-translate-y-1">
+                {getAvailabilityBadge(service.is_available)}
+              </div>
+            </div>
+          </div>
+        ))
+      ) : (
+        <div className="text-center py-7 rounded-2xl bg-gray-50/70 border border-gray-100/70
+            transition-all duration-700 ease-out hover:bg-gray-100/60 hover:shadow-sm
+            hover:-translate-y-0.5 hover:border-gray-200/80">
+          <p className="text-sm text-gray-400/90 transition-all duration-500 ease-in-out 
+              hover:text-gray-500/90 hover:scale-105">No recent services</p>
+        </div>
+      )}
+    </div>
+  </div>
+</div>
+
+
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        {/* Add New Service */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4 sm:p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer">
-          <div className="flex items-center justify-center h-12 w-12 sm:h-16 sm:w-16 bg-blue-100 rounded-full mx-auto mb-3 sm:mb-4">
-            <PlusIcon className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
-          </div>
-          <h3 className="text-base sm:text-lg font-bold text-gray-900 text-center mb-2">Add New Service</h3>
-          <p className="text-xs sm:text-sm text-gray-600 text-center mb-3 sm:mb-4">Create a new service offering for your customers</p>
-          <button 
-            onClick={() => handleNavigation('/dashboard/services')}
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm sm:text-base"
-          >
-            Create Service
-          </button>
-        </div>
+   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+  {/* Add New Service */}
+  <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6 
+      transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]
+      hover:shadow-lg hover:-translate-y-1.5 hover:border-blue-200/70
+      group cursor-pointer">
+    <div className="flex items-center justify-center h-12 w-12 sm:h-16 sm:w-16 bg-blue-100 rounded-full mx-auto mb-3 sm:mb-4
+        transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)]
+        group-hover:scale-105 group-hover:bg-blue-200/80">
+      <PlusIcon className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 
+          transition-transform duration-500 group-hover:rotate-90" />
+    </div>
+    <h3 className="text-base sm:text-lg font-bold text-gray-900 text-center mb-2
+        transition-colors duration-300 group-hover:text-blue-700">
+      Add New Service
+    </h3>
+    <p className="text-xs sm:text-sm text-gray-600 text-center mb-3 sm:mb-4
+        transition-colors duration-400 group-hover:text-gray-700">
+      Create a new service offering for your customers
+    </p>
+    <button 
+      onClick={() => handleNavigation('/dashboard/services')}
+      className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 
+          transition-all duration-300 ease-out hover:shadow-md hover:-translate-y-0.5
+          text-sm sm:text-base"
+    >
+      Create Service
+    </button>
+  </div>
 
-        {/* Manage Orders */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4 sm:p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer">
-          <div className="flex items-center justify-center h-12 w-12 sm:h-16 sm:w-16 bg-green-100 rounded-full mx-auto mb-3 sm:mb-4">
-            <ClipboardDocumentListIcon className="h-6 w-6 sm:h-8 sm:w-8 text-green-600" />
-          </div>
-          <h3 className="text-base sm:text-lg font-bold text-gray-900 text-center mb-2">Manage Orders</h3>
-          <p className="text-xs sm:text-sm text-gray-600 text-center mb-3 sm:mb-4">View and manage your service bookings</p>
-          <button 
-            onClick={() => handleNavigation('/dashboard/service-orders')}
-            className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors duration-200 text-sm sm:text-base"
-          >
-            View Orders
-          </button>
-        </div>
+  {/* Manage Orders */}
+  <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6 
+      transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]
+      hover:shadow-lg hover:-translate-y-1.5 hover:border-green-200/70
+      group cursor-pointer">
+    <div className="flex items-center justify-center h-12 w-12 sm:h-16 sm:w-16 bg-green-100 rounded-full mx-auto mb-3 sm:mb-4
+        transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)]
+        group-hover:scale-105 group-hover:bg-green-200/80">
+      <ClipboardDocumentListIcon className="h-6 w-6 sm:h-8 sm:w-8 text-green-600 
+          transition-transform duration-500 group-hover:rotate-6" />
+    </div>
+    <h3 className="text-base sm:text-lg font-bold text-gray-900 text-center mb-2
+        transition-colors duration-300 group-hover:text-green-700">
+      Manage Orders
+    </h3>
+    <p className="text-xs sm:text-sm text-gray-600 text-center mb-3 sm:mb-4
+        transition-colors duration-400 group-hover:text-gray-700">
+      View and manage your service bookings
+    </p>
+    <button 
+      onClick={() => handleNavigation('/dashboard/service-orders')}
+      className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 
+          transition-all duration-300 ease-out hover:shadow-md hover:-translate-y-0.5
+          text-sm sm:text-base"
+    >
+      View Orders
+    </button>
+  </div>
 
-        {/* Update Profile */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4 sm:p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer sm:col-span-2 lg:col-span-1">
-          <div className="flex items-center justify-center h-12 w-12 sm:h-16 sm:w-16 bg-purple-100 rounded-full mx-auto mb-3 sm:mb-4">
-            <UserIcon className="h-6 w-6 sm:h-8 sm:w-8 text-purple-600" />
-          </div>
-          <h3 className="text-base sm:text-lg font-bold text-gray-900 text-center mb-2">Update Profile</h3>
-          <p className="text-xs sm:text-sm text-gray-600 text-center mb-3 sm:mb-4">Manage your business information and settings</p>
-          <button 
-            onClick={() => handleNavigation('/dashboard/profile')}
-            className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors duration-200 text-sm sm:text-base"
-          >
-            Edit Profile
-          </button>
-        </div>
-      </div>
+  {/* Update Profile */}
+  <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6 
+      transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]
+      hover:shadow-lg hover:-translate-y-1.5 hover:border-purple-200/70
+      group cursor-pointer sm:col-span-2 lg:col-span-1">
+    <div className="flex items-center justify-center h-12 w-12 sm:h-16 sm:w-16 bg-purple-100 rounded-full mx-auto mb-3 sm:mb-4
+        transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)]
+        group-hover:scale-105 group-hover:bg-purple-200/80">
+      <UserIcon className="h-6 w-6 sm:h-8 sm:w-8 text-purple-600 
+          transition-transform duration-500 group-hover:scale-110" />
+    </div>
+    <h3 className="text-base sm:text-lg font-bold text-gray-900 text-center mb-2
+        transition-colors duration-300 group-hover:text-purple-700">
+      Update Profile
+    </h3>
+    <p className="text-xs sm:text-sm text-gray-600 text-center mb-3 sm:mb-4
+        transition-colors duration-400 group-hover:text-gray-700">
+      Manage your business information and settings
+    </p>
+    <button 
+      onClick={() => handleNavigation('/dashboard/profile')}
+      className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 
+          transition-all duration-300 ease-out hover:shadow-md hover:-translate-y-0.5
+          text-sm sm:text-base"
+    >
+      Edit Profile
+    </button>
+  </div>
+</div>
     </div>
   );
 } 

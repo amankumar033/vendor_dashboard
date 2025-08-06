@@ -32,9 +32,9 @@ export async function GET(request: NextRequest) {
     const query = `
       SELECT vendor_id, vendor_name, business_registration_number,
              vendor_description, contact_email, contact_phone, business_address,
-             city, state_province, postal_code, country, years_in_business,
-             hourly_rate, service_area_radius, is_certified, certification_details,
-             insurance_coverage, insurance_details, average_rating, total_reviews,
+             city, postal_code, years_in_business,
+           is_certified, certification_details,
+              average_rating, total_reviews,
              availability, is_active, created_at, updated_at
       FROM vendors 
       WHERE vendor_id = ?

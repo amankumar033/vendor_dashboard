@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { executeQuery } from '@/lib/db';
 
+
+
 // GET - Fetch a specific service
 export async function GET(
   request: NextRequest,

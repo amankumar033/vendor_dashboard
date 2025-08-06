@@ -12,6 +12,7 @@ interface RichTextEditorProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+    height?: string;  
 }
 
 export default function RichTextEditor({ value, onChange, placeholder, className = '' }: RichTextEditorProps) {
@@ -22,8 +23,21 @@ export default function RichTextEditor({ value, onChange, placeholder, className
   useEffect(() => {
     if (editorRef.current) {
       editorRef.current.innerHTML = value;
+      // Force text direction to left-to-right
+      editorRef.current.style.direction = 'ltr';
+      editorRef.current.style.textAlign = 'left';
+      editorRef.current.setAttribute('dir', 'ltr');
     }
   }, [value]);
+
+  // Ensure text direction is set when component mounts
+  useEffect(() => {
+    if (editorRef.current) {
+      editorRef.current.style.direction = 'ltr';
+      editorRef.current.style.textAlign = 'left';
+      editorRef.current.setAttribute('dir', 'ltr');
+    }
+  }, []);
 
   const execCommand = (command: string, value?: string) => {
     document.execCommand(command, false, value);
@@ -57,7 +71,7 @@ export default function RichTextEditor({ value, onChange, placeholder, className
   };
 
   return (
-    <div className={`border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 transition-colors ${className}`}>
+    <div className={`border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 transition-colors ${className}`} style={{ direction: 'ltr' }}>
       {/* Toolbar */}
       <div className="border-b border-gray-200 bg-gray-50 rounded-t-lg">
         {/* Row 1: Basic Formatting */}
@@ -330,14 +344,19 @@ export default function RichTextEditor({ value, onChange, placeholder, className
         onKeyDown={handleKeyDown}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
-        className={`min-h-[120px] p-4 outline-none ${
+        className={`rich-text-editor min-h-[120px] p-4 outline-none text-left [direction:ltr] [text-align:left] ${
           isFocused ? 'bg-white' : 'bg-white'
         }`}
         style={{ 
           fontFamily: 'inherit',
           fontSize: '14px',
-          lineHeight: '1.5'
-        }}
+          lineHeight: '1.5',
+          direction: 'ltr',
+          textAlign: 'left',
+          unicodeBidi: 'normal',
+          writingMode: 'horizontal-tb',
+          '--tw-text-direction': 'ltr'
+        } as React.CSSProperties}
         data-placeholder={placeholder}
       />
       

@@ -57,81 +57,104 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Top Header Bar */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm border-b border-gray-200">
-        <div className="flex items-center justify-between px-4 sm:px-6 py-4">
-          {/* Logo and Mobile Menu Button */}
-          <div className="flex items-center">
-            {/* Mobile menu button */}
-            <button
-              type="button"
-              className="lg:hidden -m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-700 mr-2"
-              onClick={() => setMobileMenuOpen(true)}
-            >
-              <span className="sr-only">Open sidebar</span>
-              <Bars3Icon className="h-6 w-6" aria-hidden="true" />
-            </button>
-            
-            {/* Logo */}
-            <div className="flex items-center">
-              <Squares2X2Icon className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
-              <span className="ml-2 text-lg sm:text-xl font-bold text-gray-900">Vendor Panel</span>
-            </div>
-          </div>
-
-          {/* Dashboard Title - Hidden on mobile */}
-          <div className="hidden sm:flex items-center">
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-              {pathname === '/dashboard' && 'Dashboard'}
-            </h1>
-          </div>
-
-          {/* Search Bar - Hidden on mobile */}
-          <div className="hidden lg:flex flex-1 max-w-md mx-8">
-            <div className="relative">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-          </div>
-
-          {/* User Info */}
-          <div className="flex items-center space-x-2 sm:space-x-4">
-            {/* Notification button - Hidden on mobile */}
-            <button className="hidden sm:block relative p-2 text-gray-600 hover:text-gray-900">
-              <BellIcon className="h-6 w-6" />
-            </button>
-            
-            {/* User info - Responsive */}
-            <div className="flex items-center space-x-2 sm:space-x-3">
-              {/* User details - Hidden on mobile */}
-              <div className="hidden sm:block text-right">
-                <p className="text-sm font-medium text-gray-900">{vendor?.vendor_name || 'Vendor'}</p>
-                <p className="text-xs text-gray-500">{vendor?.contact_email || 'vendor@example.com'}</p>
-              </div>
-              
-              {/* User avatar */}
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                <span className="text-white font-medium text-xs sm:text-sm">
-                  {vendor?.vendor_name ? vendor.vendor_name.charAt(0).toUpperCase() : 'V'}
-                </span>
-              </div>
-              
-              {/* Logout button - Hidden on mobile */}
-              <button
-                onClick={handleLogout}
-                className="hidden sm:flex items-center px-3 py-2 text-sm font-medium text-gray-600 rounded-md hover:bg-gray-100 hover:text-gray-900 transition-colors"
-              >
-                <ArrowRightOnRectangleIcon className="mr-2 h-4 w-4" />
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
+<div className="hidden lg:block fixed inset-y-0 left-0 z-40 w-80 h-full bg-white shadow-lg">
+  <div className="flex flex-col h-full ">
+    {/* Vendor Panel Header in Sidebar */}
+    <div className="px-6 py-6 border-b border-gray-200">
+      <div className="flex items-center">
+        <Squares2X2Icon className="h-8 w-8 text-transparent bg-gradient-to-r from-blue-600 to-blue-400" />
+        <span className="ml-3 text-2xl font-bold bg-gradient-to-r from-purple-800 to-blue-600 bg-clip-text text-transparent">
+          Vendor Panel
+        </span>
       </div>
+    </div>
+
+    {/* Navigation */}
+    <nav className="flex-1 px-6 py-4 space-y-2 overflow-y-auto pt-[18px]">
+      {navigation.map((item) => {
+        const isActive = pathname === item.href;
+        return (
+          <a
+            key={item.name}
+            href={item.href}
+            className={`flex items-center w-full p-4 rounded-xl text-lg transition-all duration-300 ease-out transform hover:scale-[1.02] hover:shadow-lg ${
+              isActive
+                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg scale-[1.02]'
+                : 'hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50 text-gray-700 hover:text-blue-600'
+            }`}
+          >
+            <item.icon className={`mr-4 w-6 h-6 transition-transform duration-300 group-hover:scale-110 ${
+              isActive ? 'text-white' : 'text-gray-500'
+            }`} />
+            <div>
+              <div className={`font-medium text-base ${
+                isActive ? 'text-white' : 'bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent'
+              }`}>
+                {item.name}
+              </div>
+              <div className={`text-sm ${
+                isActive ? 'text-blue-100' : 'text-gray-400'
+              }`}>
+                {item.description}
+              </div>
+            </div>
+          </a>
+        );
+      })}
+    </nav>
+  </div>
+</div>
+
+{/* Header - positioned to the right of sidebar */}
+<div className="fixed top-0 left-0 lg:left-80 right-0 z-50 bg-white/95 shadow-lg border-b border-gray-200 backdrop-blur-sm h-[80px] pb-5 pt-6">
+  <div className="flex items-center justify-between px-4 sm:px-6 py-4 h-full">
+    {/* Left section - mobile menu button */}
+    <div className="flex items-center">
+      <button
+        type="button"
+        className="lg:hidden -m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-700 hover:text-gray-900 hover:bg-gray-100 transition-all duration-300 hover:scale-110 mr-2"
+        onClick={() => setMobileMenuOpen(true)}
+      >
+        <span className="sr-only">Open sidebar</span>
+        <Bars3Icon className="h-6 w-6" aria-hidden="true" />
+      </button>
+    </div>
+
+    {/* Center section - Dashboard Title */}
+    <div className="flex-1 flex justify-center lg:justify-start">
+      <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-900 to-blue-700 bg-clip-text text-transparent">
+        {pathname === '/dashboard' && 'Dashboard'}
+      </h1>
+    </div>
+
+    {/* Right section - User Info */}
+    <div className="flex items-center space-x-2 sm:space-x-4">
+      {/* Notification button - hidden on mobile */}
+      <button className="hidden sm:block relative p-2 text-gray-600 hover:text-gray-900 rounded-full hover:bg-gray-100 transition-all duration-300 hover:scale-110">
+        <BellIcon className="h-6 w-6" />
+        <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
+      </button>
+      
+      {/* User profile */}
+      <div className="flex items-center space-x-2 sm:space-x-3">
+        <div className="hidden sm:block text-right">
+          <p className="text-sm font-medium text-gray-900">{vendor?.vendor_name || 'Vendor'}</p>
+          <p className="text-xs text-gray-500">{vendor?.contact_email || 'vendor@example.com'}</p>
+        </div>
+        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium text-xs sm:text-sm transition-all duration-300 hover:scale-110 hover:shadow-lg">
+          {vendor?.vendor_name ? vendor.vendor_name.charAt(0).toUpperCase() : 'V'}
+        </div>
+        <button
+          onClick={handleLogout}
+          className="hidden sm:flex items-center px-3 py-2 text-sm font-medium text-gray-600 rounded-md hover:bg-red-50 hover:text-red-600 transition-all duration-300 hover:scale-105 hover:shadow-md"
+        >
+          <ArrowRightOnRectangleIcon className="mr-2 h-4 w-4" />
+          Logout
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
       {/* Mobile menu overlay */}
       {mobileMenuOpen && (
@@ -213,38 +236,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </div>
       )}
-
-      {/* Sidebar - Desktop only */}
-      <div className="hidden lg:block fixed inset-y-0 left-0 z-40 w-80 bg-white shadow-lg" style={{ top: '72px' }}>
-        <div className="flex flex-col h-full">
-          {/* Navigation */}
-          <nav className="flex-1 px-6 py-8 space-y-3 overflow-y-auto">
-            {navigation.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <a
-                  key={item.name}
-                  href={item.href}
-                  className={`flex items-center px-4 py-4 text-base font-medium rounded-lg transition-colors ${
-                    isActive
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                  }`}
-                >
-                  <item.icon className={`mr-4 h-6 w-6 ${isActive ? 'text-white' : 'text-gray-500'}`} />
-                  <div>
-                    <div className="font-medium text-base">{item.name}</div>
-                    <div className={`text-sm ${isActive ? 'text-blue-100' : 'text-gray-400'}`}>
-                      {item.description}
-                    </div>
-                  </div>
-                </a>
-              );
-            })}
-          </nav>
-        </div>
-      </div>
-
+   
       {/* Main Content */}
       <div className="lg:pl-80" style={{ paddingTop: '72px' }}>
         <main className="p-4 sm:p-6">

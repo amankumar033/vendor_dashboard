@@ -41,6 +41,7 @@ export async function GET(request: NextRequest) {
 
 // POST - Create a new service
 export async function POST(request: NextRequest) {
+
   try {
     const {
       vendor_id,
@@ -51,10 +52,9 @@ export async function POST(request: NextRequest) {
       base_price,
       duration_minutes,
       is_available,
-      service_pincodes
+      service_pincodes,
     } = await request.json();
 
-    // Validate required fields
     if (!vendor_id || !name || !category || !type || !base_price || !duration_minutes) {
       return NextResponse.json(
         { error: 'All required fields must be provided' },
@@ -62,29 +62,56 @@ export async function POST(request: NextRequest) {
       );
     }
 
+   
+    // Get latest SRV id
+    const getMaxIdQuery = `
+      SELECT MAX(CAST(SUBSTRING(service_id, 4) AS UNSIGNED)) AS maxId 
+      FROM services
+    `;
+    const result = (await executeQuery(getMaxIdQuery)) as any[];
+    const lastId = result[0]?.maxId || 0;
+    const nextId = lastId + 1;
+    const service_id = `SRV${nextId}`;
+    console.log('Generated service_id:', service_id);
+    // ✅ CORRECTED INSERT QUERY WITH service_id
     const insertQuery = `
       INSERT INTO services (
-        vendor_id, name, description, category, type, base_price, 
+        service_id, vendor_id, name, description, category, type, base_price, 
         duration_minutes, is_available, service_pincodes
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    const result = await executeQuery(insertQuery, [
-      vendor_id, name, description, category, type, base_price,
-      duration_minutes, is_available || 1, service_pincodes || ''
-    ]) as any;
+    // ✅ Matching parameter values
+    const params = [
+      service_id,
+      vendor_id,
+      name,
+      description || '',
+      category || '',
+      type || '',
+      base_price,
+      duration_minutes,
+      is_available,
+      service_pincodes,
+    ];
 
-    return NextResponse.json({
-      success: true,
-      service_id: result.insertId,
-      message: 'Service created successfully'
-    }, { status: 201 });
+    console.log('Insert query:', insertQuery);
+    console.log('Params:', params);
 
+    await executeQuery(insertQuery, params);
+
+    return NextResponse.json(
+      {
+        success: true,
+        service_id,
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error('Error creating service:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to create service' },
       { status: 500 }
     );
   }
-} 
+}

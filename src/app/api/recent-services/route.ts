@@ -21,10 +21,10 @@ export async function GET(request: NextRequest) {
       FROM services 
       WHERE vendor_id = ?
       ORDER BY service_id DESC
-      LIMIT ?
+     LIMIT ${limit}
     `;
 
-    const recentServices = await executeQuery(query, [vendor_id, parseInt(limit)]) as any[];
+    const recentServices = await executeQuery(query, [vendor_id]) as any[];
 
     return NextResponse.json({
       success: true,

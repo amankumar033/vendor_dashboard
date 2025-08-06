@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { WrenchScrewdriverIcon } from '@heroicons/react/24/outline';
 
 interface VendorProfile {
-  vendor_id: number;
+  vendor_id: string;
   vendor_name: string;
   business_registration_number: string | null;
   vendor_description: string | null;
@@ -272,24 +272,14 @@ export default function ProfileManagement() {
                     {profile?.city || 'Not provided'}
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">State/Province</label>
-                  <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
-                    {profile?.state_province || 'Not provided'}
-                  </div>
-                </div>
+                
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Postal Code</label>
                   <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
                     {profile?.postal_code || 'Not provided'}
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
-                  <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
-                    {profile?.country || 'Not provided'}
-                  </div>
-                  </div>
+               
                 </div>
               </div>
             </div>
@@ -312,18 +302,8 @@ export default function ProfileManagement() {
                     {profile?.years_in_business || 'Not provided'}
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Hourly Rate ($)</label>
-                  <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
-                    {profile?.hourly_rate ? `$${profile.hourly_rate}` : 'Not provided'}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Service Area Radius (miles)</label>
-                  <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
-                    {profile?.service_area_radius ? `${profile.service_area_radius} miles` : 'Not provided'}
-                  </div>
-                </div>
+               
+                
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Availability</label>
                   <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
@@ -341,7 +321,7 @@ export default function ProfileManagement() {
                 <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Certification & Insurance
+                Certification 
               </h3>
             </div>
             <div className="px-4 py-5 sm:p-6">
@@ -365,12 +345,7 @@ export default function ProfileManagement() {
                     dangerouslySetInnerHTML={{ __html: profile?.certification_details || 'Not provided' }}
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Insurance Coverage</label>
-                  <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
-                    {profile?.insurance_coverage || 'Not provided'}
-                  </div>
-                </div>
+                
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Insurance Details</label>
                   <div 

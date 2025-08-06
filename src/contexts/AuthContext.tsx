@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface Vendor {
-  vendor_id: number;
+  vendor_id: string;
   vendor_name: string;
   business_registration_number: string | null;
   vendor_description: string | null;

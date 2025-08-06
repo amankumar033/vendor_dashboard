@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/DashboardLayout';
 import RichTextEditor from '@/components/RichTextEditor';
+import FormCard from '@/components/FormCard';
+import { useToast } from '@/components/ToastContainer';
 import { useRouter } from 'next/navigation';
 import { 
   PlusIcon, 
@@ -15,7 +17,7 @@ import {
 
 interface Product {
   product_id: number;
-  vendor_id: number;
+  vendor_id: string;
   name: string;
   description: string;
   category: string;
@@ -28,9 +30,12 @@ interface Product {
 
 export default function ProductsPage() {
   const { vendor, isLoading } = useAuth();
+  const { showSuccess, showError } = useToast();
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<number | null>(null);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -66,18 +71,19 @@ export default function ProductsPage() {
         setProducts(data.products);
       } else {
         setError('Failed to fetch products');
+        showError('Failed to fetch products', data.error || 'Please try again later');
       }
     } catch (err) {
       setError('Error fetching products');
+      showError('Error fetching products', 'Please check your connection and try again');
     } finally {
       setIsLoadingData(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handleSubmit = async () => {
     try {
+      setIsSubmitting(true);
       const url = editingProduct 
         ? `/api/products/${editingProduct.product_id}`
         : '/api/products';
@@ -104,11 +110,19 @@ export default function ProductsPage() {
         setEditingProduct(null);
         resetForm();
         fetchProducts();
+        showSuccess(
+          editingProduct ? 'Product Updated' : 'Product Created',
+          editingProduct ? 'Product has been updated successfully' : 'New product has been created successfully'
+        );
       } else {
         setError(data.error || 'Failed to save product');
+        showError('Operation Failed', data.error || 'Please try again');
       }
     } catch (err) {
       setError('Error saving product');
+      showError('Error saving product', 'Please check your connection and try again');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -129,6 +143,7 @@ export default function ProductsPage() {
     if (!confirm('Are you sure you want to delete this product?')) return;
     
     try {
+      setIsDeleting(productId);
       const response = await fetch(`/api/products/${productId}`, {
         method: 'DELETE',
         headers: {
@@ -141,11 +156,16 @@ export default function ProductsPage() {
       
       if (data.success) {
         fetchProducts();
+        showSuccess('Product Deleted', 'Product has been deleted successfully');
       } else {
         setError(data.error || 'Failed to delete product');
+        showError('Delete Failed', data.error || 'Please try again');
       }
     } catch (err) {
       setError('Error deleting product');
+      showError('Error deleting product', 'Please check your connection and try again');
+    } finally {
+      setIsDeleting(null);
     }
   };
 
@@ -264,9 +284,14 @@ export default function ProductsPage() {
                   </button>
                   <button
                     onClick={() => handleDelete(product.product_id)}
-                    className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    disabled={isDeleting === product.product_id}
+                    className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <TrashIcon className="h-4 w-4" />
+                    {isDeleting === product.product_id ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                    ) : (
+                      <TrashIcon className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -313,103 +338,84 @@ export default function ProductsPage() {
           </div>
         )}
 
-        {/* Modal */}
-        {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">
-                {editingProduct ? 'Edit Product' : 'Add Product'}
-              </h2>
-              
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                  <RichTextEditor
-                    value={formData.description}
-                    onChange={(value) => setFormData({ ...formData, description: value })}
-                    placeholder="Describe your product"
-                    className="w-full"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                  <input
-                    type="text"
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Price</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Stock Quantity</label>
-                  <input
-                    type="number"
-                    value={formData.stock_quantity}
-                    onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_available}
-                    onChange={(e) => setFormData({ ...formData, is_available: e.target.checked })}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label className="ml-2 block text-sm text-gray-900">Available for purchase</label>
-                </div>
-                
-                <div className="flex space-x-3 pt-4">
-                  <button
-                    type="submit"
-                    className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    {editingProduct ? 'Update' : 'Create'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowModal(false);
-                      setEditingProduct(null);
-                      resetForm();
-                    }}
-                    className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
+        {/* Form Card */}
+        <FormCard
+          isOpen={showModal}
+          onClose={() => {
+            setShowModal(false);
+            setEditingProduct(null);
+            resetForm();
+          }}
+          title={editingProduct ? 'Edit Product' : 'Add Product'}
+          primaryButtonText={editingProduct ? 'Update' : 'Create'}
+          onPrimaryClick={handleSubmit}
+          isLoading={isSubmitting}
+        >
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
           </div>
-        )}
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <RichTextEditor
+              value={formData.description}
+              onChange={(value) => setFormData({ ...formData, description: value })}
+              placeholder="Describe your product"
+              className="w-full"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+            <input
+              type="text"
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Price</label>
+            <input
+              type="number"
+              step="0.01"
+              value={formData.price}
+              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Stock Quantity</label>
+            <input
+              type="number"
+              value={formData.stock_quantity}
+              onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+          
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              checked={formData.is_available}
+              onChange={(e) => setFormData({ ...formData, is_available: e.target.checked })}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <label className="ml-2 block text-sm text-gray-900">Available for purchase</label>
+          </div>
+        </FormCard>
       </div>
     </DashboardLayout>
   );
