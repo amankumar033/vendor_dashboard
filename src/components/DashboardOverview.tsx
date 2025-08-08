@@ -41,7 +41,8 @@ interface RecentService {
   vendor_id: string;
   name: string;
   description: string;
-  category: string;
+  service_category_id: string;
+  category_name?: string;
   type: string;
   base_price: number;
   duration_minutes: number;
@@ -84,18 +85,26 @@ export default function DashboardOverview() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    console.log('DashboardOverview - Vendor data:', vendor);
     if (vendor?.vendor_id) {
+      console.log('Fetching data for vendor ID:', vendor.vendor_id);
       fetchStats();
       fetchRecentServices();
       fetchRecentServiceOrders();
+    } else {
+      console.log('No vendor ID available, vendor object:', vendor);
     }
   }, [vendor]);
 
   const fetchStats = async () => {
     try {
-      // Use vendor ID "2" as fallback since that's where the data exists
-      const vendorId = vendor?.vendor_id || "2";
-      const response = await fetch(`/api/dashboard-stats?vendor_id=${vendorId}`);
+      if (!vendor?.vendor_id) {
+        setError('No vendor ID available');
+        setIsLoading(false);
+        return;
+      }
+      
+      const response = await fetch(`/api/dashboard-stats?vendor_id=${vendor.vendor_id}`);
       const data = await response.json();
       
       if (data.success) {
@@ -112,9 +121,11 @@ export default function DashboardOverview() {
 
   const fetchRecentServices = async () => {
     try {
-      // Use vendor ID "2" as fallback since that's where the data exists
-      const vendorId = vendor?.vendor_id || "2";
-      const response = await fetch(`/api/recent-services?vendor_id=${vendorId}&limit=3`);
+      if (!vendor?.vendor_id) {
+        return;
+      }
+      
+      const response = await fetch(`/api/recent-services?vendor_id=${vendor.vendor_id}&limit=3`);
       const data = await response.json();
       
       if (data.success) {
@@ -127,9 +138,11 @@ export default function DashboardOverview() {
 
   const fetchRecentServiceOrders = async () => {
     try {
-      // Use vendor ID "1" as fallback since that's where the data exists
-      const vendorId = vendor?.vendor_id || "1";
-      const response = await fetch(`/api/recent-service-orders?vendor_id=${vendorId}&limit=3`);
+      if (!vendor?.vendor_id) {
+        return;
+      }
+      
+      const response = await fetch(`/api/recent-service-orders?vendor_id=${vendor.vendor_id}&limit=3`);
       const data = await response.json();
       console.log('Recent Service Orders Data:', data);
       if (data.success) {
@@ -517,7 +530,7 @@ export default function DashboardOverview() {
                   transition-all duration-700 ease-[cubic-bezier(0.5,0,0,1)]
                   group-hover/item:text-gray-500/90 group-hover/item:translate-x-1
                   group-hover/item:opacity-100">
-                {service.category} • {service.duration_minutes} min
+                                        {service.category_name || service.service_category_id} • {service.duration_minutes} min
               </p>
             </div>
             

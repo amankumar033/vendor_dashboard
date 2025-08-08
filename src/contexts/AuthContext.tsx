@@ -32,7 +32,7 @@ interface Vendor {
 interface AuthContextType {
   vendor: Vendor | null;
   token: string | null;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
   error: string | null;
@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string, rememberMe: boolean = false): Promise<boolean> => {
     try {
       setIsLoading(true);
       setError(null);
@@ -82,9 +82,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(data.token);
       setVendor(data.vendor);
       
-      // Save to localStorage
+      // Always save to localStorage for session persistence
       localStorage.setItem('vendor_token', data.token);
       localStorage.setItem('vendor_data', JSON.stringify(data.vendor));
+      
+      // Set remember_me flag based on user choice
+      if (rememberMe) {
+        localStorage.setItem('remember_me', 'true');
+      } else {
+        localStorage.removeItem('remember_me');
+      }
       
       return true;
     } catch (err) {
@@ -98,8 +105,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     setToken(null);
     setVendor(null);
-    localStorage.removeItem('vendor_token');
-    localStorage.removeItem('vendor_data');
+    
+    // If remember_me is true, keep the data for next session
+    // If remember_me is false or not set, clear all data
+    const rememberMe = localStorage.getItem('remember_me') === 'true';
+    
+    if (!rememberMe) {
+      localStorage.removeItem('vendor_token');
+      localStorage.removeItem('vendor_data');
+    }
+    localStorage.removeItem('remember_me');
   };
 
   return (

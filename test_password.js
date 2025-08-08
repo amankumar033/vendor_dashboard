@@ -21,7 +21,7 @@ const testPasswords = [
   'ronaks123'
 ];
 
-async function checkPassword() {
+async function testPasswords() {
   console.log('Testing passwords against hash...');
   
   for (const password of testPasswords) {
@@ -40,4 +40,4 @@ async function checkPassword() {
   return null;
 }
 
-checkPassword(); 
+testPasswords(); 

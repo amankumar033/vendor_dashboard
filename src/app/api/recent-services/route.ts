@@ -16,12 +16,15 @@ export async function GET(request: NextRequest) {
     }
 
     const query = `
-      SELECT service_id, vendor_id, name, description, category, type, 
-             base_price, duration_minutes, is_available, service_pincodes
-      FROM services 
-      WHERE vendor_id = ?
-      ORDER BY service_id DESC
-     LIMIT ${limit}
+      SELECT s.service_id, s.vendor_id, s.name, s.description, s.service_category_id, 
+             sc.name as category_name, s.type, s.base_price, s.duration_minutes, 
+             s.is_available, s.service_pincodes
+      FROM services s
+      LEFT JOIN service_categories sc ON s.service_category_id = sc.service_category_id 
+        AND s.vendor_id = sc.vendor_id
+      WHERE s.vendor_id = ?
+      ORDER BY s.service_id DESC
+      LIMIT ${limit}
     `;
 
     const recentServices = await executeQuery(query, [vendor_id]) as any[];

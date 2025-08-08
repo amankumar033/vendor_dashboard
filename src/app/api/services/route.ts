@@ -15,12 +15,14 @@ export async function GET(request: NextRequest) {
     }
 
     const query = `
-      SELECT service_id, vendor_id, name, description, category, type, 
-             base_price, duration_minutes, is_available, service_pincodes,
-             created_at, updated_at
-      FROM services 
-      WHERE vendor_id = ?
-      ORDER BY created_at DESC
+      SELECT s.service_id, s.vendor_id, s.name, s.description, s.service_category_id, 
+             sc.name as category_name, s.type, s.base_price, s.duration_minutes, 
+             s.is_available, s.is_featured, s.service_pincodes, s.created_at, s.updated_at
+      FROM services s
+      LEFT JOIN service_categories sc ON s.service_category_id = sc.service_category_id 
+        AND s.vendor_id = sc.vendor_id
+      WHERE s.vendor_id = ?
+      ORDER BY s.created_at DESC
     `;
 
     const services = await executeQuery(query, [vendor_id]) as any[];
@@ -47,15 +49,16 @@ export async function POST(request: NextRequest) {
       vendor_id,
       name,
       description,
-      category,
+      service_category_id,
       type,
       base_price,
       duration_minutes,
       is_available,
+      is_featured,
       service_pincodes,
     } = await request.json();
 
-    if (!vendor_id || !name || !category || !type || !base_price || !duration_minutes) {
+    if (!vendor_id || !name || !service_category_id || !type || !base_price || !duration_minutes) {
       return NextResponse.json(
         { error: 'All required fields must be provided' },
         { status: 400 }
@@ -76,9 +79,9 @@ export async function POST(request: NextRequest) {
     // ✅ CORRECTED INSERT QUERY WITH service_id
     const insertQuery = `
       INSERT INTO services (
-        service_id, vendor_id, name, description, category, type, base_price, 
-        duration_minutes, is_available, service_pincodes
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        service_id, vendor_id, name, description, service_category_id, type, base_price, 
+        duration_minutes, is_available, is_featured, service_pincodes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     // ✅ Matching parameter values
@@ -87,11 +90,12 @@ export async function POST(request: NextRequest) {
       vendor_id,
       name,
       description || '',
-      category || '',
+      service_category_id || '',
       type || '',
       base_price,
       duration_minutes,
       is_available,
+      is_featured || 0, // is_featured from request or default to 0
       service_pincodes,
     ];
 
@@ -99,6 +103,66 @@ export async function POST(request: NextRequest) {
     console.log('Params:', params);
 
     await executeQuery(insertQuery, params);
+
+    // Create notification for admin when service is created
+    const currentTimestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    
+    const notificationQuery = `
+      INSERT INTO notifications (
+        type, title, message, for_admin, for_dealer, for_user, for_vendor,
+        vendor_id, is_read, metadata, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    const notificationData = {
+      type: 'service_created',
+      title: 'New Service Created',
+      message: `A new service "${name}" has been created by vendor ${vendor_id}`,
+      for_admin: 1,
+      for_dealer: 0,
+      for_user: 0,
+      for_vendor: 0,
+      vendor_id: vendor_id,
+      is_read: 0,
+      metadata: JSON.stringify({
+        service_id: service_id,
+        vendor_id: vendor_id,
+        service_category_id: service_category_id,
+        name: name,
+        description: description || '',
+        type: type,
+        base_price: base_price,
+        duration_minutes: duration_minutes,
+        is_available: is_available,
+        is_featured: is_featured || 0,
+        service_pincodes: service_pincodes || '',
+        created_at: currentTimestamp,
+        updated_at: currentTimestamp
+      })
+    };
+
+    const notificationParams = [
+      notificationData.type,
+      notificationData.title,
+      notificationData.message,
+      notificationData.for_admin,
+      notificationData.for_dealer,
+      notificationData.for_user,
+      notificationData.for_vendor,
+      notificationData.vendor_id,
+      notificationData.is_read,
+      notificationData.metadata,
+      currentTimestamp,  // created_at
+      currentTimestamp   // updated_at
+    ];
+
+    try {
+      await executeQuery(notificationQuery, notificationParams);
+      console.log('✅ Notification created for new service:', service_id);
+    } catch (notificationError) {
+      console.error('❌ Error creating notification:', notificationError);
+      // Don't fail the service creation if notification fails
+    }
 
     return NextResponse.json(
       {

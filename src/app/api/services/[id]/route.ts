@@ -20,7 +20,7 @@ export async function GET(
     }
 
     const query = `
-      SELECT service_id, vendor_id, name, description, category, type, 
+      SELECT service_id, vendor_id, name, description, service_category_id, type, 
              base_price, duration_minutes, is_available, service_pincodes
       FROM services 
       WHERE service_id = ? AND vendor_id = ?
@@ -54,7 +54,7 @@ export async function PUT(
       vendor_id,
       name,
       description,
-      category,
+      service_category_id,
       type,
       base_price,
       duration_minutes,
@@ -63,7 +63,7 @@ export async function PUT(
     } = await request.json();
 
     // Validate required fields
-    if (!vendor_id || !name || !category || !type || !base_price || !duration_minutes) {
+    if (!vendor_id || !name || !service_category_id || !type || !base_price || !duration_minutes) {
       return NextResponse.json(
         { error: 'All required fields must be provided' },
         { status: 400 }
@@ -87,14 +87,14 @@ export async function PUT(
 
     const updateQuery = `
       UPDATE services 
-      SET name = ?, description = ?, category = ?, type = ?, 
+      SET name = ?, description = ?, service_category_id = ?, type = ?, 
           base_price = ?, duration_minutes = ?, is_available = ?, 
           service_pincodes = ?
       WHERE service_id = ? AND vendor_id = ?
     `;
 
     await executeQuery(updateQuery, [
-      name, description, category, type, base_price,
+      name, description, service_category_id, type, base_price,
       duration_minutes, is_available || 1, service_pincodes || '', service_id, vendor_id
     ]);
 

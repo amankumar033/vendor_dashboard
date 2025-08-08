@@ -23,10 +23,12 @@ import {
   Bars3Icon,
   XMarkIcon
 } from '@heroicons/react/24/outline';
+import NotificationBell from './NotificationBell';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Squares2X2Icon, description: 'Overview and analytics' },
   { name: 'Services', href: '/dashboard/services', icon: CogIcon, description: 'Service offerings' },
+  { name: 'Service Categories', href: '/dashboard/service-categories', icon: BuildingStorefrontIcon, description: 'Category management' },
   { name: 'Service Orders', href: '/dashboard/service-orders', icon: CogIcon, description: 'Service order management' },
   { name: 'Pincodes', href: '/dashboard/pincodes', icon: MapPinIcon, description: 'Service area management' },
   { name: 'Profile', href: '/dashboard/profile', icon: UserIcon, description: 'Account settings' },
@@ -129,11 +131,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     {/* Right section - User Info */}
     <div className="flex items-center space-x-2 sm:space-x-4">
-      {/* Notification button - hidden on mobile */}
-      <button className="hidden sm:block relative p-2 text-gray-600 hover:text-gray-900 rounded-full hover:bg-gray-100 transition-all duration-300 hover:scale-110">
-        <BellIcon className="h-6 w-6" />
-        <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
-      </button>
+      {/* Notification Bell */}
+      <div className="hidden sm:block">
+        <NotificationBell />
+      </div>
       
       {/* User profile */}
       <div className="flex items-center space-x-2 sm:space-x-3">
@@ -216,9 +217,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       {vendor?.vendor_name ? vendor.vendor_name.charAt(0).toUpperCase() : 'V'}
                     </span>
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <p className="text-sm font-medium text-gray-900">{vendor?.vendor_name || 'Vendor'}</p>
                     <p className="text-xs text-gray-500">{vendor?.contact_email || 'vendor@example.com'}</p>
+                  </div>
+                  {/* Mobile notification bell */}
+                  <div className="sm:hidden">
+                    <NotificationBell />
                   </div>
                 </div>
                 <button

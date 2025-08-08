@@ -6,6 +6,7 @@ import { PlusIcon, PencilIcon, TrashIcon, EyeIcon, MagnifyingGlassIcon, FunnelIc
 import RichTextEditor from './RichTextEditor';
 import FormCard from './FormCard';
 import { useToast } from './ToastContainer';
+import CategoryDropdown from './CategoryDropdown';
 import {
   WrenchScrewdriverIcon,
   XMarkIcon,
@@ -57,11 +58,13 @@ interface Service {
   vendor_id: string;
   name: string;
   description: string;
-  category: string;
+  service_category_id: string;
+  category_name?: string;
   type: string;
   base_price: number;
   duration_minutes: number;
   is_available: number;
+  is_featured: number;
   service_pincodes: string;
   created_at: string;
   updated_at: string;
@@ -110,7 +113,7 @@ function ServiceDetailPanel({
               <h1 className="text-xl font-bold text-gray-800 mb-1">{service.name}</h1>
               <div className="flex items-center space-x-2">
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                  {service.category}
+                  {service.category_name || service.service_category_id}
                 </span>
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                   {service.type}
@@ -273,7 +276,7 @@ export default function ServicesManagement() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [error, setError] = useState('');
-  const [showModal, setShowModal] = useState(true);
+  const [showModal, setShowModal] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -284,11 +287,12 @@ export default function ServicesManagement() {
     service_id: '',
     name: '',
     description: '',
-    category: '',
+    service_category_id: '',
     type: '',
     base_price: 0,
     duration_minutes: '',
     is_available: true,
+    is_featured: false,
     service_pincodes: ''
   });
 const formatDate = (date: Date) => {
@@ -344,14 +348,13 @@ const fetchServices = async () => {
       filtered = filtered.filter(service =>
         service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         service.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        service.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
         service.type.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     // Category filter
     if (categoryFilter) {
-      filtered = filtered.filter(service => service.category === categoryFilter);
+      filtered = filtered.filter(service => service.service_category_id === categoryFilter);
     }
 
     // Availability filter
@@ -365,18 +368,18 @@ const fetchServices = async () => {
 
   const exportServices = () => {
     const csvContent = [
-      ['Service ID', 'Name', 'Description', 'Category', 'Type', 'Base Price', 'Duration (min)', 'Available', 'Service Pincodes'],
-      ...filteredServices.map(service => [
-        service.service_id,
-        service.name,
-        service.description,
-        service.category,
-        service.type,
-        service.base_price,
-        service.duration_minutes,
-        service.is_available ? 'Yes' : 'No',
-        service.service_pincodes
-      ])
+      ['Service ID', 'Name', 'Description', 'Category ID', 'Type', 'Base Price', 'Duration (min)', 'Available', 'Service Pincodes'],
+              ...filteredServices.map(service => [
+          service.service_id,
+          service.name,
+          service.description,
+          service.service_category_id,
+          service.type,
+          service.base_price,
+          service.duration_minutes,
+          service.is_available ? 'Yes' : 'No',
+          service.service_pincodes
+        ])
     ].map(row => row.map(field => `"${field}"`).join(',')).join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -389,7 +392,7 @@ const fetchServices = async () => {
   };
 
   const getUniqueCategories = () => {
-    return [...new Set(services.map(service => service.category))];
+    return [...new Set(services.map(service => service.service_category_id))];
   };
 
  const handleSubmit = async () => {
@@ -410,7 +413,8 @@ const fetchServices = async () => {
         vendor_id: vendor_id,
         base_price: Number(formData.base_price), // Ensure number
         duration_minutes: parseInt(formData.duration_minutes),
-        is_available: formData.is_available ? 1 : 0
+        is_available: formData.is_available ? 1 : 0,
+        is_featured: formData.is_featured ? 1 : 0
       }),
     });
 
@@ -449,11 +453,12 @@ const fetchServices = async () => {
     name: service.name,
     service_id: service.service_id,
     description: service.description,
-    category: service.category,
+    service_category_id: service.service_category_id,
     type: service.type,
     base_price: Number(service.base_price) || 0, // Ensure number
     duration_minutes: service.duration_minutes.toString(),
     is_available: service.is_available === 1,
+    is_featured: service.is_featured === 1,
     service_pincodes: service.service_pincodes
   });
   setShowModal(true);
@@ -502,11 +507,12 @@ const fetchServices = async () => {
       service_id: '',
       name: '',
       description: '',
-      category: '',
+      service_category_id: '',
       type: '',
       base_price: 0,
       duration_minutes: '',
       is_available: true,
+      is_featured: false,
       service_pincodes: ''
     });
   };
@@ -527,6 +533,20 @@ const fetchServices = async () => {
         Unavailable
       </span>
     );
+  };
+
+  const truncateDescription = (description: string, maxWords: number = 4) => {
+    // Remove HTML tags and get plain text
+    const plainText = description.replace(/<[^>]*>/g, '');
+    const words = plainText.trim().split(/\s+/);
+    
+    if (words.length <= maxWords) {
+      return description; // Return original if 4 words or less
+    }
+    
+    // Take first 4 words and add ellipsis
+    const truncatedWords = words.slice(0, maxWords).join(' ');
+    return `${truncatedWords}...`;
   };
 
   if (isLoading) {
@@ -677,13 +697,13 @@ const fetchServices = async () => {
                         <div className="text-sm font-medium text-gray-900 transition-colors duration-300">{service.name}</div>
                         <div 
                           className="text-xs sm:text-sm text-gray-600 truncate max-w-xs transition-colors duration-300"
-                          dangerouslySetInnerHTML={{ __html: service.description }}
+                          dangerouslySetInnerHTML={{ __html: truncateDescription(service.description) }}
                         />
                         {/* Mobile-only info */}
                         <div className="sm:hidden mt-2 space-y-1">
                           <div className="flex items-center space-x-2">
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 transition-colors duration-300">
-                              {service.category}
+                              {service.category_name || service.service_category_id}
                             </span>
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 transition-colors duration-300">
                               {service.type}
@@ -698,7 +718,7 @@ const fetchServices = async () => {
                     </td>
                     <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap transition-colors duration-300">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 transition-colors duration-300">
-                        {service.category}
+                        {service.category_name || service.service_category_id}
                       </span>
                     </td>
                     <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap transition-colors duration-300">
@@ -783,272 +803,271 @@ const fetchServices = async () => {
       />
 
       {/* Form Card */}
-{showModal && (
-  <div className="min-h-screen bg-gray-50 flex flex-col form-transition">
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 relative w-full max-w-4xl mx-auto form-scale-enter">
-      
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-              <WrenchScrewdriverIcon className="w-4 h-4 text-blue-600" />
-            </div>
-            <div>
-              <h1 className="text-xl font-semibold text-gray-900">
-                {editingService ? `Edit Service: ${formData.name}` : 'Create New Service'}
-              </h1>
+      {showModal && (
+        <div className="min-h-screen bg-gray-50 flex flex-col form-transition">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 relative w-full max-w-4xl mx-auto form-scale-enter">
             
-            </div>
-          </div>
-          <button
-            onClick={() => setShowModal(false)}
-            className="text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-gray-100 rounded-lg"
-          >
-            <XMarkIcon className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
-      
-      {/* Main Content */}
-      <div className="flex-1 px-6 py-8">
-        {/* Basic Information Section */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-blue-200 rounded-t-lg mb-6">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-              <InformationCircleIcon className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-blue-900">
-                Basic Information
-              </h2>
-              <p className="text-sm text-blue-700">
-                Service name and description
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 mb-6">
-          <div className="bg-white border border-blue-200 rounded-lg p-4">
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Service Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  placeholder="e.g., Premium Car Detailing"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Description
-                </label>
-                <RichTextEditor
-                  value={formData.description}
-                  onChange={(value) => setFormData({...formData, description: value})}
+            {/* Header */}
+            <div className="bg-white border-b border-gray-200 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <WrenchScrewdriverIcon className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <h1 className="text-xl font-semibold text-gray-900">
+                      {editingService ? `Edit Service: ${formData.name}` : 'Create New Service'}
+                    </h1>
                   
-                  className="w-full border border-gray-300 rounded-lg"
-                />
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-gray-100 rounded-lg"
+                >
+                  <XMarkIcon className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            
+            {/* Main Content */}
+            <div className="flex-1 px-6 py-8">
+              {/* Basic Information Section */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-blue-200 rounded-t-lg mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <InformationCircleIcon className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-blue-900">
+                      Basic Information
+                    </h2>
+                    <p className="text-sm text-blue-700">
+                      Service name and description
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 mb-6">
+                <div className="bg-white border border-blue-200 rounded-lg p-4">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Service Name *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.name}
+                        onChange={(e) => setFormData({...formData, name: e.target.value})}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                        placeholder="e.g., Premium Car Detailing"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Description
+                      </label>
+                      <RichTextEditor
+                        value={formData.description}
+                        onChange={(value) => setFormData({...formData, description: value})}
+                        
+                        className="w-full border border-gray-300 rounded-lg"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Classification Section */}
+              <div className="bg-gradient-to-r from-purple-50 to-violet-50 px-6 py-4 border-b border-purple-200 rounded-t-lg mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                    <TagIcon className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-purple-900">
+                      Classification
+                    </h2>
+                    <p className="text-sm text-purple-700">
+                      Categorize your service
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="bg-white border border-purple-200 rounded-lg p-4">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Category *
+                  </label>
+                  <CategoryDropdown
+                    value={formData.service_category_id}
+                    onChange={(value) => setFormData({...formData, service_category_id: value})}
+                    required={true}
+                    placeholder="Select a category"
+                    className="w-full"
+                  />
+                </div>
+
+                <div className="bg-white border border-purple-200 rounded-lg p-4">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Type *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.type}
+                    onChange={(e) => setFormData({...formData, type: e.target.value})}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                    placeholder="e.g., Interior Cleaning"
+                  />
+                </div>
+              </div>
+
+              {/* Pricing & Duration Section */}
+              <div className="bg-gradient-to-r from-green-50 to-teal-50 px-6 py-4 border-b border-green-200 rounded-t-lg mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                    <CurrencyDollarIcon className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-green-900">
+                      Pricing & Duration
+                    </h2>
+                    <p className="text-sm text-green-700">
+                      Set service cost and time
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="bg-white border border-green-200 rounded-lg p-4">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Base Price ($) *
+                  </label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-green-600">$</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      required
+                      value={formData.base_price}
+                      onChange={(e) => setFormData({...formData, base_price: Number(e.target.value) || 0})}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+
+                <div className="bg-white border border-green-200 rounded-lg p-4">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Duration (minutes) *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="1"
+                      required
+                      value={formData.duration_minutes}
+                      onChange={(e) => setFormData({...formData, duration_minutes: e.target.value})}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                      placeholder="30"
+                    />
+                    <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-green-600">min</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Availability Section */}
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 px-6 py-4 border-b border-amber-200 rounded-t-lg mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                    <MapPinIcon className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-amber-900">
+                      Availability
+                    </h2>
+                    <p className="text-sm text-amber-700">
+                      Set service locations and status
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 mb-6">
+                <div className="bg-white border border-amber-200 rounded-lg p-4">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Service Pincodes
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.service_pincodes}
+                        onChange={(e) => setFormData({...formData, service_pincodes: e.target.value})}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                        placeholder="e.g., 110001, 110002, 110003"
+                      />
+                      <p className="mt-2 text-xs text-amber-600">Comma separated pincodes where service is available</p>
+                    </div>
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id="is_available"
+                        checked={formData.is_available}
+                        onChange={(e) => setFormData({...formData, is_available: e.target.checked})}
+                        className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
+                      />
+                      <label htmlFor="is_available" className="ml-2 text-sm text-gray-700">
+                        Service is available for booking
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
+              <div className="flex justify-between items-center">
+                <div className="text-sm text-gray-600">
+                  {editingService ? `Last updated: ${formatDate(new Date())}` : 'Creating new service'}
+                </div>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => setShowModal(false)}
+                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors duration-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center space-x-2"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>{editingService ? 'Updating...' : 'Creating...'}</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckIcon className="w-4 h-4" />
+                        <span>{editingService ? 'Update Service' : 'Create Service'}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
-
-        {/* Classification Section */}
-        <div className="bg-gradient-to-r from-purple-50 to-violet-50 px-6 py-4 border-b border-purple-200 rounded-t-lg mb-6">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-              <TagIcon className="w-5 h-5 text-purple-600" />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-purple-900">
-                Classification
-              </h2>
-              <p className="text-sm text-purple-700">
-                Categorize your service
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div className="bg-white border border-purple-200 rounded-lg p-4">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Category *
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.category}
-              onChange={(e) => setFormData({...formData, category: e.target.value})}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
-              placeholder="e.g., Automotive"
-            />
-          </div>
-
-          <div className="bg-white border border-purple-200 rounded-lg p-4">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Type *
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.type}
-              onChange={(e) => setFormData({...formData, type: e.target.value})}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
-              placeholder="e.g., Interior Cleaning"
-            />
-          </div>
-        </div>
-
-        {/* Pricing & Duration Section */}
-        <div className="bg-gradient-to-r from-green-50 to-teal-50 px-6 py-4 border-b border-green-200 rounded-t-lg mb-6">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-              <CurrencyDollarIcon className="w-5 h-5 text-green-600" />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-green-900">
-                Pricing & Duration
-              </h2>
-              <p className="text-sm text-green-700">
-                Set service cost and time
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div className="bg-white border border-green-200 rounded-lg p-4">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Base Price ($) *
-            </label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-green-600">$</span>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                required
-                value={formData.base_price}
-                onChange={(e) => setFormData({...formData, base_price: Number(e.target.value) || 0})}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                placeholder="0.00"
-              />
-            </div>
-          </div>
-
-          <div className="bg-white border border-green-200 rounded-lg p-4">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Duration (minutes) *
-            </label>
-            <div className="relative">
-              <input
-                type="number"
-                min="1"
-                required
-                value={formData.duration_minutes}
-                onChange={(e) => setFormData({...formData, duration_minutes: e.target.value})}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                placeholder="30"
-              />
-              <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-green-600">min</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Availability Section */}
-        <div className="bg-gradient-to-r from-amber-50 to-orange-50 px-6 py-4 border-b border-amber-200 rounded-t-lg mb-6">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
-              <MapPinIcon className="w-5 h-5 text-amber-600" />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-amber-900">
-                Availability
-              </h2>
-              <p className="text-sm text-amber-700">
-                Set service locations and status
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 mb-6">
-          <div className="bg-white border border-amber-200 rounded-lg p-4">
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Service Pincodes
-                </label>
-                <input
-                  type="text"
-                  value={formData.service_pincodes}
-                  onChange={(e) => setFormData({...formData, service_pincodes: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
-                  placeholder="e.g., 110001, 110002, 110003"
-                />
-                <p className="mt-2 text-xs text-amber-600">Comma separated pincodes where service is available</p>
-              </div>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="is_available"
-                  checked={formData.is_available}
-                  onChange={(e) => setFormData({...formData, is_available: e.target.checked})}
-                  className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
-                />
-                <label htmlFor="is_available" className="ml-2 text-sm text-gray-700">
-                  Service is available for booking
-                </label>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
-        <div className="flex justify-between items-center">
-          <div className="text-sm text-gray-600">
-            {editingService ? `Last updated: ${formatDate(new Date())}` : 'Creating new service'}
-          </div>
-          <div className="flex space-x-3">
-            <button
-              onClick={() => setShowModal(false)}
-              className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors duration-200"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center space-x-2"
-            >
-              {isSubmitting ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>{editingService ? 'Updating...' : 'Creating...'}</span>
-                </>
-              ) : (
-                <>
-                  <CheckIcon className="w-4 h-4" />
-                  <span>{editingService ? 'Update Service' : 'Create Service'}</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
+      )}
     </div>
   );
 }
