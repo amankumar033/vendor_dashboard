@@ -48,3 +48,4 @@ SMTP_FROM=your_email@domain.com
 2. Accept/reject a service request
 3. Check if emails are sent successfully
 
+

@@ -44,7 +44,7 @@ export async function PUT(
 
     // First check if the service order belongs to the vendor and get customer details
     const checkQuery = `
-      SELECT so.*, u.email as customer_email, u.name as customer_name
+      SELECT so.*, u.email as customer_email, u.full_name as customer_name
       FROM service_orders so
       LEFT JOIN users u ON so.user_id = u.user_id
       WHERE so.service_order_id = ? AND so.vendor_id = ?
@@ -75,11 +75,13 @@ export async function PUT(
     // Send email notification if status changed
     if (previousStatus !== service_status) {
       try {
-        const recipientEmail = order.customer_email || 'test@example.com';
+        const recipientEmail = order.customer_email || 'customer@example.com';
+        const customerName = order.customer_name || 'Customer';
+        
         const emailSubject = `Service Order Status Updated - ${service_status.toUpperCase()}`;
         const emailBody = `
           <h2>Service Order Status Update</h2>
-          <p>Dear ${order.customer_name || 'Customer'},</p>
+          <p>Dear ${customerName},</p>
           <p>Your service order has been updated.</p>
           
           <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
