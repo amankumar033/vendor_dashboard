@@ -49,3 +49,4 @@ SMTP_FROM=your_email@domain.com
 3. Check if emails are sent successfully
 
 
+

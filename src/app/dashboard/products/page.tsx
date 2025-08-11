@@ -46,7 +46,7 @@ export default function ProductsPage() {
     category: '',
     price: '',
     stock_quantity: '',
-    is_available: true
+    is_available: false
   });
 
   useEffect(() => {
@@ -99,7 +99,8 @@ export default function ProductsPage() {
           ...formData,
           vendor_id: vendor?.vendor_id,
           price: parseFloat(formData.price),
-          stock_quantity: parseInt(formData.stock_quantity)
+          stock_quantity: parseInt(formData.stock_quantity),
+          is_available: formData.is_available || false // Default to false
         }),
       });
 
@@ -176,7 +177,7 @@ export default function ProductsPage() {
       category: '',
       price: '',
       stock_quantity: '',
-      is_available: true
+      is_available: false
     });
   };
 
@@ -406,15 +407,7 @@ export default function ProductsPage() {
             />
           </div>
           
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              checked={formData.is_available}
-              onChange={(e) => setFormData({ ...formData, is_available: e.target.checked })}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-            />
-            <label className="ml-2 block text-sm text-gray-900">Available for purchase</label>
-          </div>
+
         </FormCard>
       </div>
     </DashboardLayout>

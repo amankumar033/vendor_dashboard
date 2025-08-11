@@ -291,7 +291,7 @@ export default function ServicesManagement() {
     type: '',
     base_price: 0,
     duration_minutes: '',
-    is_available: true,
+    is_available: false,
     is_featured: false,
     service_pincodes: ''
   });
@@ -511,7 +511,7 @@ const fetchServices = async () => {
       type: '',
       base_price: 0,
       duration_minutes: '',
-      is_available: true,
+      is_available: false,
       is_featured: false,
       service_pincodes: ''
     });
@@ -1014,18 +1014,6 @@ const fetchServices = async () => {
                         placeholder="e.g., 110001, 110002, 110003"
                       />
                       <p className="mt-2 text-xs text-amber-600">Comma separated pincodes where service is available</p>
-                    </div>
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        id="is_available"
-                        checked={formData.is_available}
-                        onChange={(e) => setFormData({...formData, is_available: e.target.checked})}
-                        className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
-                      />
-                      <label htmlFor="is_available" className="ml-2 text-sm text-gray-700">
-                        Service is available for booking
-                      </label>
                     </div>
                   </div>
                 </div>

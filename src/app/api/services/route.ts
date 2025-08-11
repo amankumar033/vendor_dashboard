@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     const query = `
       SELECT s.service_id, s.vendor_id, s.name, s.description, s.service_category_id, 
              sc.name as category_name, s.type, s.base_price, s.duration_minutes, 
-             s.is_available, s.is_featured, s.service_pincodes, s.created_at, s.updated_at
+             s.is_available, s.service_pincodes, s.created_at, s.updated_at
       FROM services s
       LEFT JOIN service_categories sc ON s.service_category_id = sc.service_category_id 
         AND s.vendor_id = sc.vendor_id
@@ -54,7 +54,6 @@ export async function POST(request: NextRequest) {
       base_price,
       duration_minutes,
       is_available,
-      is_featured,
       service_pincodes,
     } = await request.json();
 
@@ -76,15 +75,16 @@ export async function POST(request: NextRequest) {
     const nextId = lastId + 1;
     const service_id = `SRV${nextId}`;
     console.log('Generated service_id:', service_id);
-    // ✅ CORRECTED INSERT QUERY WITH service_id
+    
+    // ✅ CORRECTED INSERT QUERY WITHOUT is_featured
     const insertQuery = `
       INSERT INTO services (
         service_id, vendor_id, name, description, service_category_id, type, base_price, 
-        duration_minutes, is_available, is_featured, service_pincodes
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        duration_minutes, is_available, service_pincodes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    // ✅ Matching parameter values
+    // ✅ Matching parameter values WITHOUT is_featured
     const params = [
       service_id,
       vendor_id,
@@ -94,13 +94,9 @@ export async function POST(request: NextRequest) {
       type || '',
       base_price,
       duration_minutes,
-      is_available,
-      is_featured || 0, // is_featured from request or default to 0
+      is_available || 0, // Default to 0 if not provided
       service_pincodes,
     ];
-
-    console.log('Insert query:', insertQuery);
-    console.log('Params:', params);
 
     await executeQuery(insertQuery, params);
 
@@ -133,8 +129,7 @@ export async function POST(request: NextRequest) {
         type: type,
         base_price: base_price,
         duration_minutes: duration_minutes,
-        is_available: is_available,
-        is_featured: is_featured || 0,
+        is_available: is_available || 0,
         service_pincodes: service_pincodes || '',
         created_at: currentTimestamp,
         updated_at: currentTimestamp
@@ -164,17 +159,16 @@ export async function POST(request: NextRequest) {
       // Don't fail the service creation if notification fails
     }
 
-    return NextResponse.json(
-      {
-        success: true,
-        service_id,
-      },
-      { status: 201 }
-    );
+    return NextResponse.json({
+      success: true,
+      message: 'Service created successfully',
+      service_id
+    });
+
   } catch (error) {
     console.error('Error creating service:', error);
     return NextResponse.json(
-      { error: 'Failed to create service' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

@@ -1,5 +1,11 @@
-import React, { useState, useMemo, useRef } from 'react';
-import JoditEditor from 'jodit-react';
+import React, { useState, useRef, useMemo } from 'react';
+import dynamic from 'next/dynamic';
+
+// Dynamically import JoditEditor to avoid SSR issues
+const JoditEditor = dynamic(() => import('jodit-react'), {
+  ssr: false,
+  loading: () => <div className="border border-gray-300 rounded-lg p-4 h-32 bg-gray-50 animate-pulse">Loading editor...</div>
+});
 
 interface RichTextEditorProps {
   value: string;
@@ -16,9 +22,9 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   height = 300,
   className = ''
 }) => {
-  const editor = useRef<any>(null);
+  const editor = useRef(null);
 
-  const editorConfig = useMemo(() => ({
+  const config = useMemo(() => ({
     readonly: false,
     placeholder: placeholder,
     height: height,
@@ -47,6 +53,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     ],
     events: {
       afterInit: function(editor: any) {
+        console.log('Jodit editor initialized successfully');
+        
         // Handle list style dropdown functionality
         editor.events.on('click', function(event: any) {
           const target = event.target;
@@ -162,7 +170,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       <JoditEditor
         ref={editor}
         value={value}
-        config={editorConfig}
+        config={config}
         tabIndex={1}
         onBlur={(newContent) => onChange(newContent)}
         onChange={(newContent) => {}}
