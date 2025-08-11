@@ -64,3 +64,136 @@ html {
   unicode-bidi: normal !important;
   writing-mode: horizontal-tb !important;
 }
+
+/* Jodit Editor List Styling - Enhanced */
+.jodit-wysiwyg ul {
+  padding-left: 20px !important;
+  margin: 10px 0 !important;
+}
+
+.jodit-wysiwyg ol {
+  padding-left: 20px !important;
+  margin: 10px 0 !important;
+}
+
+.jodit-wysiwyg li {
+  margin: 5px 0 !important;
+  line-height: 1.6 !important;
+  display: list-item !important;
+}
+
+/* Support for different list styles from dropdown */
+.jodit-wysiwyg ul[style*="list-style-type: disc"] {
+  list-style-type: disc !important;
+}
+
+.jodit-wysiwyg ul[style*="list-style-type: circle"] {
+  list-style-type: circle !important;
+}
+
+.jodit-wysiwyg ul[style*="list-style-type: square"] {
+  list-style-type: square !important;
+}
+
+.jodit-wysiwyg ul[style*="list-style-type: dot"] {
+  list-style-type: disc !important;
+}
+
+/* Default list styles */
+.jodit-wysiwyg ul:not([style*="list-style-type"]) {
+  list-style-type: disc !important;
+}
+
+.jodit-wysiwyg ol:not([style*="list-style-type"]) {
+  list-style-type: decimal !important;
+}
+
+/* Nested list support */
+.jodit-wysiwyg ul ul {
+  margin-left: 20px !important;
+}
+
+.jodit-wysiwyg ul ul ul {
+  margin-left: 20px !important;
+}
+
+.jodit-wysiwyg ol ol {
+  margin-left: 20px !important;
+}
+
+.jodit-wysiwyg ol ol ol {
+  margin-left: 20px !important;
+}
+
+/* Ensure list bullets are always visible */
+.jodit-wysiwyg ul li::marker {
+  color: #000000 !important;
+  font-weight: bold !important;
+}
+
+.jodit-wysiwyg ol li::marker {
+  color: #000000 !important;
+  font-weight: bold !important;
+}
+
+/* Jodit dropdown styling */
+.jodit-ui-list__item,
+.jodit-ui-paragraph__item {
+  cursor: pointer !important;
+  padding: 8px 12px !important;
+  transition: background-color 0.2s !important;
+}
+
+.jodit-ui-list__item:hover,
+.jodit-ui-paragraph__item:hover {
+  background-color: #f3f4f6 !important;
+}
+
+.jodit-ui-list__item[data-value],
+.jodit-ui-paragraph__item[data-value] {
+  font-size: 14px !important;
+  color: #374151 !important;
+}
+
+/* Heading styles in editor */
+.jodit-wysiwyg h1 {
+  font-size: 2em !important;
+  font-weight: bold !important;
+  margin: 0.67em 0 !important;
+  color: #1f2937 !important;
+}
+
+.jodit-wysiwyg h2 {
+  font-size: 1.5em !important;
+  font-weight: bold !important;
+  margin: 0.83em 0 !important;
+  color: #1f2937 !important;
+}
+
+.jodit-wysiwyg h3 {
+  font-size: 1.17em !important;
+  font-weight: bold !important;
+  margin: 1em 0 !important;
+  color: #1f2937 !important;
+}
+
+.jodit-wysiwyg h4 {
+  font-size: 1em !important;
+  font-weight: bold !important;
+  margin: 1.33em 0 !important;
+  color: #1f2937 !important;
+}
+
+.jodit-wysiwyg h5 {
+  font-size: 0.83em !important;
+  font-weight: bold !important;
+  margin: 1.67em 0 !important;
+  color: #1f2937 !important;
+}
+
+.jodit-wysiwyg h6 {
+  font-size: 0.67em !important;
+  font-weight: bold !important;
+  margin: 2.33em 0 !important;
+  color: #1f2937 !important;
+}

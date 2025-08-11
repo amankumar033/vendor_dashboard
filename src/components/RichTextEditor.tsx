@@ -1,371 +1,174 @@
-'use client';
-
-import { useState, useRef, useEffect } from 'react';
-import { 
-  BoldIcon, 
-  ItalicIcon, 
-  UnderlineIcon
-} from '@heroicons/react/24/outline';
+import React, { useState, useMemo, useRef } from 'react';
+import JoditEditor from 'jodit-react';
 
 interface RichTextEditorProps {
   value: string;
-  onChange: (value: string) => void;
+  onChange: (content: string) => void;
   placeholder?: string;
+  height?: number;
   className?: string;
-    height?: string;  
 }
 
-export default function RichTextEditor({ value, onChange, placeholder, className = '' }: RichTextEditorProps) {
-  const editorRef = useRef<HTMLDivElement>(null);
-  const [isFocused, setIsFocused] = useState(false);
-  const [showColorDropdown, setShowColorDropdown] = useState(false);
+const RichTextEditor: React.FC<RichTextEditorProps> = ({
+  value,
+  onChange,
+  placeholder = 'Enter detailed description...',
+  height = 300,
+  className = ''
+}) => {
+  const editor = useRef<any>(null);
 
-  useEffect(() => {
-    if (editorRef.current) {
-      editorRef.current.innerHTML = value;
-      // Force text direction to left-to-right
-      editorRef.current.style.direction = 'ltr';
-      editorRef.current.style.textAlign = 'left';
-      editorRef.current.setAttribute('dir', 'ltr');
+  const editorConfig = useMemo(() => ({
+    readonly: false,
+    placeholder: placeholder,
+    height: height,
+    theme: 'default',
+    toolbar: true,
+    spellcheck: false,
+    language: 'en',
+    colorPickerDefaultTab: 'background' as const,
+    imageDefaultWidth: 300,
+    removeButtons: ['source', 'about', 'fullsize'],
+    showCharsCounter: true,
+    showWordsCounter: true,
+    showXPathInStatusbar: false,
+    askBeforePasteHTML: false,
+    askBeforePasteFromWord: false,
+    enter: 'p' as const,
+    fullscreen: false,
+    buttons: [
+      'bold', 'strikethrough', 'underline', 'italic', '|',
+      'ul', 'ol', '|',
+      'outdent', 'indent', '|',
+      'font', 'fontsize', 'brush', 'paragraph', '|',
+      'image', 'link', '|',
+      'align', 'undo', 'redo', '|',
+      'hr', 'eraser', 'copyformat'
+    ],
+    events: {
+      afterInit: function(editor: any) {
+        // Handle list style dropdown functionality
+        editor.events.on('click', function(event: any) {
+          const target = event.target;
+          
+          // Check if clicked on list style dropdown items
+          if (target && target.classList.contains('jodit-ui-list__item')) {
+            const listStyle = target.getAttribute('data-value');
+            const selection = editor.selection;
+            const range = selection.range;
+            
+            if (range && !range.collapsed) {
+              // Text is selected, apply list style
+              const selectedText = selection.getHTML();
+              let listHTML = '';
+              
+              if (listStyle === 'default' || listStyle === 'disc') {
+                listHTML = `<ul style="list-style-type: disc"><li>${selectedText}</li></ul>`;
+              } else if (listStyle === 'circle') {
+                listHTML = `<ul style="list-style-type: circle"><li>${selectedText}</li></ul>`;
+              } else if (listStyle === 'dot') {
+                listHTML = `<ul style="list-style-type: disc"><li>${selectedText}</li></ul>`;
+              } else if (listStyle === 'square') {
+                listHTML = `<ul style="list-style-type: square"><li>${selectedText}</li></ul>`;
+              }
+              
+              if (listHTML) {
+                editor.execCommand('insertHTML', listHTML);
+              }
+            }
+          }
+          
+          // Handle heading dropdown functionality
+          if (target && target.classList.contains('jodit-ui-paragraph__item')) {
+            const headingType = target.getAttribute('data-value');
+            const selection = editor.selection;
+            const range = selection.range;
+            
+            if (range && !range.collapsed) {
+              // Text is selected, apply heading
+              const selectedText = selection.getHTML();
+              let headingHTML = '';
+              
+              if (headingType === 'h1') {
+                headingHTML = `<h1>${selectedText}</h1>`;
+              } else if (headingType === 'h2') {
+                headingHTML = `<h2>${selectedText}</h2>`;
+              } else if (headingType === 'h3') {
+                headingHTML = `<h3>${selectedText}</h3>`;
+              } else if (headingType === 'h4') {
+                headingHTML = `<h4>${selectedText}</h4>`;
+              } else if (headingType === 'h5') {
+                headingHTML = `<h5>${selectedText}</h5>`;
+              } else if (headingType === 'h6') {
+                headingHTML = `<h6>${selectedText}</h6>`;
+              } else if (headingType === 'p') {
+                headingHTML = `<p>${selectedText}</p>`;
+              }
+              
+              if (headingHTML) {
+                editor.execCommand('insertHTML', headingHTML);
+              }
+            } else {
+              // No text selected, create empty heading
+              let headingHTML = '';
+              
+              if (headingType === 'h1') {
+                headingHTML = '<h1><br></h1>';
+              } else if (headingType === 'h2') {
+                headingHTML = '<h2><br></h2>';
+              } else if (headingType === 'h3') {
+                headingHTML = '<h3><br></h3>';
+              } else if (headingType === 'h4') {
+                headingHTML = '<h4><br></h4>';
+              } else if (headingType === 'h5') {
+                headingHTML = '<h5><br></h5>';
+              } else if (headingType === 'h6') {
+                headingHTML = '<h6><br></h6>';
+              } else if (headingType === 'p') {
+                headingHTML = '<p><br></p>';
+              }
+              
+              if (headingHTML) {
+                editor.execCommand('insertHTML', headingHTML);
+              }
+            }
+          }
+        });
+
+        // Handle Enter key for list continuation
+        editor.events.on('keydown', function(event: any) {
+          if (event.key === 'Enter') {
+            const selection = editor.selection;
+            const currentElement = selection.current();
+            
+            // Check if we're inside a list item
+            if (currentElement) {
+              const parentElement = currentElement.parentElement;
+              if (parentElement && (parentElement.tagName === 'LI' || parentElement.tagName === 'UL' || parentElement.tagName === 'OL')) {
+                // Continue list on new line
+                setTimeout(() => {
+                  editor.execCommand('insertHTML', '<br>');
+                }, 10);
+              }
+            }
+          }
+        });
+      }
     }
-  }, [value]);
-
-  // Ensure text direction is set when component mounts
-  useEffect(() => {
-    if (editorRef.current) {
-      editorRef.current.style.direction = 'ltr';
-      editorRef.current.style.textAlign = 'left';
-      editorRef.current.setAttribute('dir', 'ltr');
-    }
-  }, []);
-
-  const execCommand = (command: string, value?: string) => {
-    document.execCommand(command, false, value);
-    editorRef.current?.focus();
-    updateValue();
-  };
-
-  const updateValue = () => {
-    if (editorRef.current) {
-      onChange(editorRef.current.innerHTML);
-    }
-  };
-
-  const handlePaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const text = e.clipboardData.getData('text/plain');
-    document.execCommand('insertText', false, text);
-    updateValue();
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && e.shiftKey) {
-      e.preventDefault();
-      document.execCommand('insertLineBreak', false);
-      updateValue();
-    }
-  };
-
-  const isActive = (command: string) => {
-    return document.queryCommandState(command);
-  };
+  }), [placeholder, height]);
 
   return (
-    <div className={`border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 transition-colors ${className}`} style={{ direction: 'ltr' }}>
-      {/* Toolbar */}
-      <div className="border-b border-gray-200 bg-gray-50 rounded-t-lg">
-        {/* Row 1: Basic Formatting */}
-        <div className="flex items-center gap-1 p-2 border-b border-gray-200">
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => execCommand('bold')}
-              title="Bold"
-              className={`p-2 rounded hover:bg-gray-100 transition-colors ${
-                isActive('bold') ? 'bg-indigo-100 text-indigo-600' : 'text-gray-600'
-              }`}
-            >
-              <span className="text-xs font-bold">B</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => execCommand('italic')}
-              title="Italic"
-              className={`p-2 rounded hover:bg-gray-100 transition-colors ${
-                isActive('italic') ? 'bg-indigo-100 text-indigo-600' : 'text-gray-600'
-              }`}
-            >
-              <span className="text-xs italic">I</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => execCommand('underline')}
-              title="Underline"
-              className={`p-2 rounded hover:bg-gray-100 transition-colors ${
-                isActive('underline') ? 'bg-indigo-100 text-indigo-600' : 'text-gray-600'
-              }`}
-            >
-              <span className="text-xs underline">U</span>
-            </button>
-          </div>
-          
-          <div className="w-px h-6 bg-gray-300 mx-2"></div>
-          
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => execCommand('insertUnorderedList')}
-              title="Bullet List"
-              className={`p-2 rounded hover:bg-gray-100 transition-colors ${
-                isActive('insertUnorderedList') ? 'bg-indigo-100 text-indigo-600' : 'text-gray-600'
-              }`}
-            >
-              <span className="text-xs">•</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => execCommand('insertOrderedList')}
-              title="Numbered List"
-              className={`p-2 rounded hover:bg-gray-100 transition-colors ${
-                isActive('insertOrderedList') ? 'bg-indigo-100 text-indigo-600' : 'text-gray-600'
-              }`}
-            >
-              <span className="text-xs">1.</span>
-            </button>
-          </div>
-          
-          <div className="w-px h-6 bg-gray-300 mx-2"></div>
-          
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => execCommand('justifyLeft')}
-              title="Align Left"
-              className={`p-2 rounded hover:bg-gray-100 transition-colors ${
-                isActive('justifyLeft') ? 'bg-indigo-100 text-indigo-600' : 'text-gray-600'
-              }`}
-            >
-              <span className="text-xs font-bold">L</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => execCommand('justifyCenter')}
-              title="Align Center"
-              className={`p-2 rounded hover:bg-gray-100 transition-colors ${
-                isActive('justifyCenter') ? 'bg-indigo-100 text-indigo-600' : 'text-gray-600'
-              }`}
-            >
-              <span className="text-xs font-bold">C</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => execCommand('justifyRight')}
-              title="Align Right"
-              className={`p-2 rounded hover:bg-gray-100 transition-colors ${
-                isActive('justifyRight') ? 'bg-indigo-100 text-indigo-600' : 'text-gray-600'
-              }`}
-            >
-              <span className="text-xs font-bold">R</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Row 2: Font Size and Color Controls */}
-        <div className="flex items-center gap-1 p-2">
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-600 mr-1">Size:</span>
-            <button
-              type="button"
-              onClick={() => execCommand('fontSize', '2')}
-              title="Small Text"
-              className="p-2 rounded hover:bg-gray-100 transition-colors text-gray-600"
-            >
-              <span className="text-xs">S</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => execCommand('fontSize', '3')}
-              title="Normal Text"
-              className="p-2 rounded hover:bg-gray-100 transition-colors text-gray-600"
-            >
-              <span className="text-sm">N</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => execCommand('fontSize', '4')}
-              title="Large Text"
-              className="p-2 rounded hover:bg-gray-100 transition-colors text-gray-600"
-            >
-              <span className="text-base">L</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => execCommand('fontSize', '5')}
-              title="X-Large Text"
-              className="p-2 rounded hover:bg-gray-100 transition-colors text-gray-600"
-            >
-              <span className="text-lg">XL</span>
-            </button>
-          </div>
-          
-          <div className="w-px h-6 bg-gray-300 mx-2"></div>
-          
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-600 mr-1">Color:</span>
-            <div className="relative">
-              <div className="flex items-center gap-1">
-                <input
-                  type="color"
-                  title="Text Color"
-                  className="w-8 h-8 p-0 border border-gray-300 rounded cursor-pointer"
-                  onChange={e => execCommand('foreColor', e.target.value)}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowColorDropdown(!showColorDropdown)}
-                  title="Basic Colors"
-                  className="p-1 rounded hover:bg-gray-100 transition-colors text-gray-600"
-                >
-                  <span className="text-xs">▼</span>
-                </button>
-              </div>
-              {/* Basic Colors Dropdown */}
-              {showColorDropdown && (
-                <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-2 z-10 min-w-[120px]">
-                  <div className="grid grid-cols-4 gap-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        execCommand('foreColor', '#000000');
-                        setShowColorDropdown(false);
-                      }}
-                      title="Black"
-                      className="w-6 h-6 rounded border border-gray-300 bg-black hover:scale-110 transition-transform"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        execCommand('foreColor', '#dc2626');
-                        setShowColorDropdown(false);
-                      }}
-                      title="Red"
-                      className="w-6 h-6 rounded border border-gray-300 bg-red-600 hover:scale-110 transition-transform"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        execCommand('foreColor', '#2563eb');
-                        setShowColorDropdown(false);
-                      }}
-                      title="Blue"
-                      className="w-6 h-6 rounded border border-gray-300 bg-blue-600 hover:scale-110 transition-transform"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        execCommand('foreColor', '#16a34a');
-                        setShowColorDropdown(false);
-                      }}
-                      title="Green"
-                      className="w-6 h-6 rounded border border-gray-300 bg-green-600 hover:scale-110 transition-transform"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        execCommand('foreColor', '#ca8a04');
-                        setShowColorDropdown(false);
-                      }}
-                      title="Yellow"
-                      className="w-6 h-6 rounded border border-gray-300 bg-yellow-500 hover:scale-110 transition-transform"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        execCommand('foreColor', '#9333ea');
-                        setShowColorDropdown(false);
-                      }}
-                      title="Purple"
-                      className="w-6 h-6 rounded border border-gray-300 bg-purple-600 hover:scale-110 transition-transform"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        execCommand('foreColor', '#ea580c');
-                        setShowColorDropdown(false);
-                      }}
-                      title="Orange"
-                      className="w-6 h-6 rounded border border-gray-300 bg-orange-600 hover:scale-110 transition-transform"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        execCommand('foreColor', '#0891b2');
-                        setShowColorDropdown(false);
-                      }}
-                      title="Cyan"
-                      className="w-6 h-6 rounded border border-gray-300 bg-cyan-600 hover:scale-110 transition-transform"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          <div className="w-px h-6 bg-gray-300 mx-2"></div>
-          
-          <div className="flex items-center ">
-            <span className="text-xs text-gray-600 mr-1">Font:</span>
-            <button
-              type="button"
-              onClick={() => execCommand('fontSize', '2')}
-              title="Decrease Font Size"
-              className="p-2 rounded hover:bg-gray-100 transition-colors text-gray-600"
-            >
-              <span className="text-xs">A-</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => execCommand('fontSize', '4')}
-              title="Increase Font Size"
-              className="p-2 rounded hover:bg-gray-100 transition-colors text-gray-600"
-            >
-              <span className="text-xs">A+</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Editor */}
-      <div
-        ref={editorRef}
-        contentEditable
-        onInput={updateValue}
-        onPaste={handlePaste}
-        onKeyDown={handleKeyDown}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
-        className={`rich-text-editor min-h-[120px] p-4 outline-none text-left [direction:ltr] [text-align:left] ${
-          isFocused ? 'bg-white' : 'bg-white'
-        }`}
-        style={{ 
-          fontFamily: 'inherit',
-          fontSize: '14px',
-          lineHeight: '1.5',
-          direction: 'ltr',
-          textAlign: 'left',
-          unicodeBidi: 'normal',
-          writingMode: 'horizontal-tb',
-          '--tw-text-direction': 'ltr'
-        } as React.CSSProperties}
-        data-placeholder={placeholder}
+    <div className={`border border-gray-300 rounded-lg overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:border-blue-300 ${className}`}>
+      <JoditEditor
+        ref={editor}
+        value={value}
+        config={editorConfig}
+        tabIndex={1}
+        onBlur={(newContent) => onChange(newContent)}
+        onChange={(newContent) => {}}
       />
-      
-      {/* Placeholder */}
-      {!value && (
-        <div className="absolute top-[60px] left-4 text-gray-400 pointer-events-none">
-          {placeholder}
-        </div>
-      )}
     </div>
   );
-} 
+};
+
+export default RichTextEditor; 

@@ -29,7 +29,9 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Squares2X2Icon, description: 'Overview and analytics' },
   { name: 'Services', href: '/dashboard/services', icon: CogIcon, description: 'Service offerings' },
   { name: 'Service Categories', href: '/dashboard/service-categories', icon: BuildingStorefrontIcon, description: 'Category management' },
+  { name: 'Service Requests', href: '/dashboard/service-requests', icon: ClipboardDocumentListIcon, description: 'Pending service requests' },
   { name: 'Service Orders', href: '/dashboard/service-orders', icon: CogIcon, description: 'Service order management' },
+  { name: 'Notifications', href: '/dashboard/notifications', icon: BellIcon, description: 'Notification management' },
   { name: 'Pincodes', href: '/dashboard/pincodes', icon: MapPinIcon, description: 'Service area management' },
   { name: 'Profile', href: '/dashboard/profile', icon: UserIcon, description: 'Account settings' },
 ];

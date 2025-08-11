@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 import { BellIcon } from '@heroicons/react/24/outline';
 import { BellIcon as BellSolidIcon } from '@heroicons/react/24/solid';
 import { 
@@ -17,6 +18,7 @@ interface Notification {
   type: string;
   title: string;
   message: string;
+  description?: string;
   for_vendor: number;
   vendor_id: string;
   is_read: boolean;
@@ -26,6 +28,7 @@ interface Notification {
 
 export default function NotificationBell() {
   const { vendor } = useAuth();
+  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -87,6 +90,11 @@ export default function NotificationBell() {
     fetchNotifications(true);
   };
 
+  const navigateToNotification = (notificationId: number) => {
+    setIsOpen(false);
+    router.push(`/dashboard/notifications?notification=${notificationId}`);
+  };
+
   const markAsRead = async (notificationId: number) => {
     const loadingKey = `read-${notificationId}`;
     setLoadingStates(prev => ({ ...prev, [loadingKey]: true }));
@@ -138,6 +146,51 @@ export default function NotificationBell() {
     }
   };
 
+  const handleServiceRequestAction = async (notificationId: number, action: 'accept' | 'reject') => {
+    const loadingKey = `${action}-${notificationId}`;
+    setLoadingStates(prev => ({ ...prev, [loadingKey]: true }));
+    
+    try {
+      const response = await fetch('/api/service-requests', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          notification_id: notificationId,
+          action: action,
+          vendor_id: vendor?.vendor_id
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // Update the notification type in the local state
+        setNotifications(prev => 
+          prev.map(n => 
+            n.id === notificationId 
+              ? { 
+                  ...n, 
+                  type: action === 'accept' ? 'service_order_accepted' : 'service_order_rejected',
+                  is_read: true 
+                }
+              : n
+          )
+        );
+        
+        // Show success message
+        console.log(`Service request ${action}ed successfully`);
+      } else {
+        console.error('Action failed:', data.error);
+      }
+    } catch (error) {
+      console.error('Error processing service request action:', error);
+    } finally {
+      setLoadingStates(prev => ({ ...prev, [loadingKey]: false }));
+    }
+  };
+
   const markAllAsRead = async () => {
     setLoadingStates(prev => ({ ...prev, markAllAsRead: true }));
     
@@ -167,6 +220,12 @@ export default function NotificationBell() {
         return '🛠️';
       case 'product_created':
         return '🛠️';
+      case 'service_order_created':
+        return '📋';
+      case 'service_order_accepted':
+        return '✅';
+      case 'service_order_rejected':
+        return '❌';
       default:
         return '🔔';
     }
@@ -186,6 +245,12 @@ export default function NotificationBell() {
         return 'bg-orange-100 text-orange-800';
       case 'product_created':
         return 'bg-orange-100 text-orange-800';
+      case 'service_order_created':
+        return 'bg-blue-100 text-blue-800';
+      case 'service_order_accepted':
+        return 'bg-green-100 text-green-800';
+      case 'service_order_rejected':
+        return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -284,7 +349,7 @@ export default function NotificationBell() {
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              All ({totalCount})
+              All {totalCount > 0 ? `(${totalCount})` : ''}
             </button>
             <button
               onClick={() => setActiveTab('unread')}
@@ -294,7 +359,7 @@ export default function NotificationBell() {
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              Unread ({unreadCount})
+              Unread {unreadCount > 0 ? `(${unreadCount})` : ''}
             </button>
             <button
               onClick={() => setActiveTab('read')}
@@ -304,7 +369,7 @@ export default function NotificationBell() {
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              Read ({readCount})
+              Read {readCount > 0 ? `(${readCount})` : ''}
             </button>
           </div>
 
@@ -323,13 +388,13 @@ export default function NotificationBell() {
               </div>
             ) : (
               filteredNotifications.map((notification) => (
-                                 <div
-                   key={notification.id}
-                   className={`p-4 hover:bg-gray-50 transition-all duration-200 cursor-pointer border-b border-gray-100 ${
-                     !notification.is_read ? 'bg-blue-50/50' : 'bg-gray-25'
-                   }`}
-                   onClick={() => markAsRead(notification.id)}
-                 >
+                                                 <div
+                  key={notification.id}
+                  className={`p-4 hover:bg-gray-50 transition-all duration-200 cursor-pointer border-b border-gray-100 ${
+                    !notification.is_read ? 'bg-blue-50/50' : 'bg-gray-25'
+                  }`}
+                  onClick={() => navigateToNotification(notification.id)}
+                >
                   <div className="flex items-start space-x-3">
                     <div className="flex-shrink-0">
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${getNotificationColor(notification.type)}`}>
@@ -342,39 +407,92 @@ export default function NotificationBell() {
                                                      <p className={`text-sm font-semibold ${
                              !notification.is_read ? 'text-gray-900' : 'text-gray-500'
                            }`}>
-                             {notification.title}
+                             {notification.message}
                            </p>
-                          <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                            {notification.message}
-                          </p>
+                           {/* Show description if available */}
+                           {notification.description && (
+                             <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                               {notification.description}
+                             </p>
+                           )}
                         </div>
                         <div className="flex flex-col items-end space-y-1 ml-2">
                           <span className="text-xs text-gray-400 font-mono">
                             {formatTimeAgo(notification.created_at)}
                           </span>
-                          {!notification.is_read && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                              New
-                            </span>
-                          )}
+
                         </div>
                       </div>
                       
                                              {/* Action Buttons */}
                        <div className="flex items-center justify-between mt-3">
                          <div className="flex items-center space-x-2">
-                           <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getNotificationColor(notification.type)}`}>
-                             {notification.type.replace('_', ' ').toUpperCase()}
-                           </span>
-                           {notification.is_read && (
+                           {/* Show Read tag only if not a service request */}
+                           {notification.is_read && notification.type !== 'service_order_created' && (
                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                <CheckIcon className="h-3 w-3 mr-1" />
                                Read
                              </span>
                            )}
+                           
+                           {/* Action Buttons for Service Requests */}
+                           {notification.type === 'service_order_created' && !notification.is_read && (
+                             <>
+                               <button
+                                 onClick={(e) => {
+                                   e.stopPropagation();
+                                   handleServiceRequestAction(notification.id, 'accept');
+                                 }}
+                                 disabled={loadingStates[`accept-${notification.id}`]}
+                                 className={`text-xs font-medium flex items-center px-2 py-1 rounded border transition-colors ${
+                                   loadingStates[`accept-${notification.id}`]
+                                     ? 'text-white bg-green-600 border-green-600 cursor-not-allowed'
+                                     : 'text-white bg-green-600 hover:bg-green-700 border-green-600 hover:border-green-700'
+                                 }`}
+                               >
+                                 {loadingStates[`accept-${notification.id}`] ? (
+                                   <>
+                                     <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                                     <span>Accepting...</span>
+                                   </>
+                                 ) : (
+                                   <>
+                                     <CheckIcon className="h-3 w-3 mr-1" />
+                                     Accept
+                                   </>
+                                 )}
+                               </button>
+                               
+                               <button
+                                 onClick={(e) => {
+                                   e.stopPropagation();
+                                   handleServiceRequestAction(notification.id, 'reject');
+                                 }}
+                                 disabled={loadingStates[`reject-${notification.id}`]}
+                                 className={`text-xs font-medium flex items-center px-2 py-1 rounded border transition-colors ${
+                                   loadingStates[`reject-${notification.id}`]
+                                     ? 'text-white bg-red-600 border-red-600 cursor-not-allowed'
+                                     : 'text-white bg-red-600 hover:bg-red-700 border-red-600 hover:border-red-700'
+                                 }`}
+                               >
+                                 {loadingStates[`reject-${notification.id}`] ? (
+                                   <>
+                                     <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                                     <span>Rejecting...</span>
+                                   </>
+                                 ) : (
+                                   <>
+                                     <XMarkIcon className="h-3 w-3 mr-1" />
+                                     Reject
+                                   </>
+                                 )}
+                               </button>
+                             </>
+                           )}
                          </div>
                          <div className="flex items-center space-x-2">
-                                                       {!notification.is_read && (
+                           {/* Hide Mark as read button when action buttons are shown */}
+                           {!notification.is_read && notification.type !== 'service_order_created' && (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -429,31 +547,38 @@ export default function NotificationBell() {
           </div>
 
           {/* Footer */}
-          {filteredNotifications.length > 0 && (
-            <div className="p-3 border-t border-gray-200 bg-gray-50">
-              <div className="flex items-center justify-between text-xs text-gray-500">
-                                 <span>Auto-refresh {autoRefresh ? 'enabled' : 'disabled'}</span>
-                                 <div className="flex items-center space-x-2">
-                   <button
-                     onClick={() => setAutoRefresh(!autoRefresh)}
-                     className={`text-xs px-2 py-1 rounded ${
-                       autoRefresh 
-                         ? 'bg-green-100 text-green-700 hover:bg-green-200' 
-                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                     }`}
-                   >
-                     {autoRefresh ? 'Disable' : 'Enable'} Auto
-                   </button>
-                   <button
-                     onClick={handleRefresh}
-                     className="text-blue-600 hover:text-blue-800 font-medium"
-                   >
-                     Refresh now
-                   </button>
-                 </div>
+          <div className="p-3 border-t border-gray-200 bg-gray-50">
+            <div className="flex items-center justify-between text-xs text-gray-500">
+              <span>Auto-refresh {autoRefresh ? 'enabled' : 'disabled'}</span>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => {
+                    setIsOpen(false);
+                    router.push('/dashboard/notifications');
+                  }}
+                  className="text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  View All
+                </button>
+                <button
+                  onClick={() => setAutoRefresh(!autoRefresh)}
+                  className={`text-xs px-2 py-1 rounded ${
+                    autoRefresh 
+                      ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {autoRefresh ? 'Disable' : 'Enable'} Auto
+                </button>
+                <button
+                  onClick={handleRefresh}
+                  className="text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  Refresh now
+                </button>
               </div>
             </div>
-          )}
+          </div>
         </div>
       )}
 

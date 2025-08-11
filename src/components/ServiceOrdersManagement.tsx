@@ -197,6 +197,13 @@ export default function ServiceOrdersManagement() {
       return;
     }
     
+    // Prevent editing rejected orders
+    if (order.service_status === 'rejected') {
+      setError('Cannot edit rejected orders');
+      showError('Edit Not Allowed', 'Rejected orders cannot be edited');
+      return;
+    }
+    
     setEditingOrder(order);
     setFormData({
       service_status: order.service_status,
@@ -252,10 +259,10 @@ export default function ServiceOrdersManagement() {
   const getStatusBadge = (status: string) => {
     const statusConfig: { [key: string]: { bg: string; text: string; label: string } } = {
       'pending': { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Pending' },
-      'confirmed': { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Confirmed' },
-      'in_progress': { bg: 'bg-orange-100', text: 'text-orange-800', label: 'In Progress' },
-      'completed': { bg: 'bg-green-100', text: 'text-green-800', label: 'Completed' },
-      'cancelled': { bg: 'bg-red-100', text: 'text-red-800', label: 'Cancelled' }
+      'scheduled': { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Scheduled' },
+      'cancelled': { bg: 'bg-red-100', text: 'text-red-800', label: 'Cancelled' },
+      'rejected': { bg: 'bg-red-100', text: 'text-red-800', label: 'Rejected' },
+      'refunded': { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Refunded' }
     };
     
     const config = statusConfig[status] || { bg: 'bg-gray-100', text: 'text-gray-800', label: status };
@@ -368,10 +375,10 @@ function formatDate(input: string | Date, formatString = 'MM/dd/yyyy'): string {
       >
         <option value="">All Statuses</option>
         <option value="pending">Pending</option>
-        <option value="confirmed">Confirmed</option>
-        <option value="in_progress">In Progress</option>
-        <option value="completed">Completed</option>
+        <option value="scheduled">Scheduled</option>
         <option value="cancelled">Cancelled</option>
+        <option value="rejected">Rejected</option>
+        <option value="refunded">Refunded</option>
       </select>
       <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
         <FiChevronDown className="h-5 w-5 text-gray-400 group-hover:text-indigo-500 transition-colors duration-300" />
@@ -508,8 +515,13 @@ function formatDate(input: string | Date, formatString = 'MM/dd/yyyy'): string {
                       e.stopPropagation();
                       handleEdit(order);
                     }}
-                    className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50 transition-colors"
-                    title="Edit Order"
+                    disabled={order.service_status === 'rejected'}
+                    className={`p-1 rounded transition-colors ${
+                      order.service_status === 'rejected'
+                        ? 'text-gray-400 cursor-not-allowed'
+                        : 'text-blue-600 hover:text-blue-900 hover:bg-blue-50'
+                    }`}
+                    title={order.service_status === 'rejected' ? 'Cannot edit rejected orders' : 'Edit Order'}
                   >
                     <PencilIcon className="h-4 w-4" />
                   </button>
@@ -663,10 +675,10 @@ function formatDate(input: string | Date, formatString = 'MM/dd/yyyy'): string {
               >
                 <option value="">Select Status</option>
                 <option value="pending">Pending</option>
-                <option value="confirmed">Confirmed</option>
-                <option value="in_progress">In Progress</option>
-                <option value="completed">Completed</option>
+                <option value="scheduled">Scheduled</option>
                 <option value="cancelled">Cancelled</option>
+                <option value="rejected">Rejected</option>
+                <option value="refunded">Refunded</option>
               </select>
             </div>
 
