@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     }
 
     const query = `
-      SELECT id, type, title, message, for_admin, for_dealer, for_user, for_vendor,
+      SELECT id, type, title, message, description, for_admin, for_dealer, for_user, for_vendor,
              product_id, order_id, user_id, vendor_id, dealer_id, is_read, is_delivered,
              whatsapp_delivered, email_delivered, sms_delivered, metadata, created_at, updated_at
       FROM notifications 

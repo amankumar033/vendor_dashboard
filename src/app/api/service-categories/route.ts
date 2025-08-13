@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     const result = (await executeQuery(getMaxIdQuery)) as any[];
     const lastId = result[0]?.maxId || 0;
     const nextId = lastId + 1;
-    const service_category_id = `SCTR${nextId}`;
+    const service_category_id = `SCTR${String(nextId).padStart(3, '0')}`;
 
     const insertQuery = `
       INSERT INTO service_categories (

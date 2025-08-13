@@ -96,6 +96,7 @@ export async function POST(request: NextRequest) {
         SET type = 'service_order_accepted', 
             title = ?, 
             message = ?,
+            description = ?,
             updated_at = NOW()
         WHERE id = ?
       `;
@@ -133,6 +134,7 @@ export async function POST(request: NextRequest) {
         SET type = 'service_order_rejected', 
             title = ?, 
             message = ?,
+            description = ?,
             updated_at = NOW()
         WHERE id = ?
       `;
@@ -168,21 +170,25 @@ export async function POST(request: NextRequest) {
     }
 
     // Update the notification
-    await executeQuery(updateQuery, [newTitle, newMessage, notification_id]);
+    await executeQuery(updateQuery, [newTitle, newMessage, newDescription, notification_id]);
 
     // Update service order status in service_orders table
-    const updateServiceOrderQuery = `
-      UPDATE service_orders 
-      SET service_status = ?
-      WHERE service_order_id = ?
-    `;
-    
-    try {
-      await executeQuery(updateServiceOrderQuery, [serviceOrderStatus, metadata.service_order_id]);
-      console.log(`✅ Service order status updated to ${serviceOrderStatus}`);
-    } catch (orderError) {
-      console.error('❌ Error updating service order status:', orderError);
-      // Don't fail the request if order update fails
+    if (metadata.service_order_id) {
+      const updateServiceOrderQuery = `
+        UPDATE service_orders 
+        SET service_status = ?
+        WHERE service_order_id = ?
+      `;
+      
+      try {
+        await executeQuery(updateServiceOrderQuery, [serviceOrderStatus, metadata.service_order_id]);
+        console.log(`✅ Service order status updated to ${serviceOrderStatus}`);
+      } catch (orderError) {
+        console.error('❌ Error updating service order status:', orderError);
+        // Don't fail the request if order update fails
+      }
+    } else {
+      console.log('⚠️ No service_order_id found in metadata, skipping service order update');
     }
 
     // Send email notification
@@ -194,6 +200,49 @@ export async function POST(request: NextRequest) {
     } catch (emailError) {
       console.error('❌ Error sending email:', emailError);
       // Don't fail the request if email fails
+    }
+
+    // Also send email for payment status changes if applicable
+    if (metadata.payment_status && metadata.payment_status !== 'pending') {
+      try {
+        const paymentEmailSubject = `Payment Status Update - ${metadata.payment_status.toUpperCase()}`;
+        const paymentEmailBody = `
+          <h2>Payment Status Update</h2>
+          <p>Dear ${metadata.user_name || 'Customer'},</p>
+          <p>Your payment status has been updated.</p>
+          
+          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
+            <h3>Payment Details:</h3>
+            <p><strong>Service:</strong> ${metadata.service_name}</p>
+            <p><strong>Order ID:</strong> ${metadata.service_order_id}</p>
+            <p><strong>Payment Status:</strong> ${metadata.payment_status.toUpperCase()}</p>
+            <p><strong>Amount:</strong> ₹${metadata.final_price}</p>
+            <p><strong>Payment Method:</strong> ${metadata.payment_method || 'Not specified'}</p>
+            <p><strong>Updated Date:</strong> ${new Date().toLocaleDateString()}</p>
+          </div>
+
+          ${metadata.payment_status === 'paid' ? `
+            <p>Your payment has been successfully processed. Thank you for your payment!</p>
+            <p>Your service will be scheduled as requested.</p>
+          ` : metadata.payment_status === 'failed' ? `
+            <p>Your payment has failed. Please try again or contact our support team for assistance.</p>
+            <p>You can retry the payment from your dashboard.</p>
+          ` : metadata.payment_status === 'refunded' ? `
+            <p>Your payment has been refunded. Please allow 3-5 business days for the refund to appear in your account.</p>
+            <p>If you have any questions about the refund, please contact our support team.</p>
+          ` : `
+            <p>Your payment status has been updated. Please check your dashboard for more details.</p>
+          `}
+
+          <p>Thank you for choosing our services!</p>
+          <p>Best regards,<br>Your Service Team</p>
+        `;
+
+        await sendEmail(recipientEmail, paymentEmailSubject, paymentEmailBody);
+        console.log('✅ Payment status email sent successfully');
+      } catch (paymentEmailError) {
+        console.error('❌ Error sending payment status email:', paymentEmailError);
+      }
     }
 
     return NextResponse.json({

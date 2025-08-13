@@ -197,10 +197,10 @@ export default function ServiceOrdersManagement() {
       return;
     }
     
-    // Prevent editing rejected orders
-    if (order.service_status === 'rejected') {
-      setError('Cannot edit rejected orders');
-      showError('Edit Not Allowed', 'Rejected orders cannot be edited');
+    // Prevent editing rejected or cancelled orders
+    if (order.service_status === 'rejected' || order.service_status === 'cancelled') {
+      setError('Cannot edit rejected or cancelled orders');
+      showError('Edit Not Allowed', 'Rejected or cancelled orders cannot be edited');
       return;
     }
     
@@ -498,8 +498,8 @@ function formatDate(input: string | Date, formatString = 'MM/dd/yyyy'): string {
               </td>
               <td className="px-3 sm:px-6 py-4 whitespace-nowrap transition-colors duration-300">
                 <div>
-                  <div className="text-sm font-bold text-green-600 transition-colors duration-300">${order.final_price}</div>
-                  <div className="text-xs sm:text-sm text-gray-600 transition-colors duration-300">Base: ${order.base_price}</div>
+                                  <div className="text-sm font-bold text-green-600 transition-colors duration-300">₹{order.final_price}</div>
+                <div className="text-xs sm:text-sm text-gray-600 transition-colors duration-300">Base: ₹{order.base_price}</div>
                 </div>
               </td>
               <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap transition-colors duration-300">
@@ -515,13 +515,13 @@ function formatDate(input: string | Date, formatString = 'MM/dd/yyyy'): string {
                       e.stopPropagation();
                       handleEdit(order);
                     }}
-                    disabled={order.service_status === 'rejected'}
+                    disabled={order.service_status === 'rejected' || order.service_status === 'cancelled'}
                     className={`p-1 rounded transition-colors ${
-                      order.service_status === 'rejected'
+                      order.service_status === 'rejected' || order.service_status === 'cancelled'
                         ? 'text-gray-400 cursor-not-allowed'
                         : 'text-blue-600 hover:text-blue-900 hover:bg-blue-50'
                     }`}
-                    title={order.service_status === 'rejected' ? 'Cannot edit rejected orders' : 'Edit Order'}
+                    title={order.service_status === 'rejected' || order.service_status === 'cancelled' ? 'Cannot edit rejected or cancelled orders' : 'Edit Order'}
                   >
                     <PencilIcon className="h-4 w-4" />
                   </button>

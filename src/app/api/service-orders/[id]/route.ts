@@ -61,6 +61,7 @@ export async function PUT(
 
     const order = existingOrders[0];
     const previousStatus = order.service_status;
+    const previousPaymentStatus = order.payment_status;
 
     const updateQuery = `
       UPDATE service_orders 
@@ -91,21 +92,29 @@ export async function PUT(
             <p><strong>Previous Status:</strong> ${previousStatus.toUpperCase()}</p>
             <p><strong>New Status:</strong> ${service_status.toUpperCase()}</p>
             <p><strong>Updated Date:</strong> ${new Date().toLocaleDateString()}</p>
+            <p><strong>Service Date:</strong> ${order.service_date}</p>
+            <p><strong>Service Time:</strong> ${order.service_time}</p>
+            <p><strong>Service Address:</strong> ${order.service_address}</p>
           </div>
 
           ${service_status === 'scheduled' ? `
-            <p>Your service has been scheduled. Please be ready at the specified time.</p>
+            <p>Your service has been scheduled. Please be ready at the specified time and location.</p>
+            <p>The vendor will contact you shortly to confirm the final details.</p>
           ` : service_status === 'cancelled' ? `
             <p>Your service has been cancelled. If you have any questions, please contact us.</p>
+            <p>You may be eligible for a refund depending on our cancellation policy.</p>
           ` : service_status === 'rejected' ? `
             <p>Your service request has been rejected. Please contact us for more information.</p>
+            <p>You may try booking with a different vendor or service.</p>
           ` : service_status === 'refunded' ? `
             <p>Your payment has been refunded. Please allow 3-5 business days for the refund to appear in your account.</p>
+            <p>If you have any questions about the refund, please contact our support team.</p>
           ` : `
             <p>Your service order status has been updated. Please check your dashboard for more details.</p>
           `}
 
           <p>Thank you for choosing our services!</p>
+          <p>Best regards,<br>Your Service Team</p>
         `;
 
         console.log('📧 Sending status update email to:', recipientEmail);
@@ -113,6 +122,54 @@ export async function PUT(
         console.log('✅ Status update email sent successfully');
       } catch (emailError) {
         console.error('❌ Error sending status update email:', emailError);
+        // Don't fail the request if email fails
+      }
+    }
+
+    // Send email notification if payment status changed
+    if (previousPaymentStatus !== payment_status) {
+      try {
+        const recipientEmail = order.customer_email || 'customer@example.com';
+        const customerName = order.customer_name || 'Customer';
+        
+        const paymentEmailSubject = `Payment Status Updated - ${payment_status.toUpperCase()}`;
+        const paymentEmailBody = `
+          <h2>Payment Status Update</h2>
+          <p>Dear ${customerName},</p>
+          <p>Your payment status has been updated.</p>
+          
+          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
+            <h3>Payment Details:</h3>
+            <p><strong>Order ID:</strong> ${service_order_id}</p>
+            <p><strong>Service:</strong> ${order.service_name}</p>
+            <p><strong>Previous Payment Status:</strong> ${previousPaymentStatus.toUpperCase()}</p>
+            <p><strong>New Payment Status:</strong> ${payment_status.toUpperCase()}</p>
+            <p><strong>Amount:</strong> ₹${order.final_price}</p>
+            <p><strong>Updated Date:</strong> ${new Date().toLocaleDateString()}</p>
+          </div>
+
+          ${payment_status === 'paid' ? `
+            <p>Your payment has been successfully processed. Thank you for your payment!</p>
+            <p>Your service will be scheduled as requested.</p>
+          ` : payment_status === 'failed' ? `
+            <p>Your payment has failed. Please try again or contact our support team for assistance.</p>
+            <p>You can retry the payment from your dashboard.</p>
+          ` : payment_status === 'refunded' ? `
+            <p>Your payment has been refunded. Please allow 3-5 business days for the refund to appear in your account.</p>
+            <p>If you have any questions about the refund, please contact our support team.</p>
+          ` : `
+            <p>Your payment status has been updated. Please check your dashboard for more details.</p>
+          `}
+
+          <p>Thank you for choosing our services!</p>
+          <p>Best regards,<br>Your Service Team</p>
+        `;
+
+        console.log('📧 Sending payment status update email to:', recipientEmail);
+        await sendEmail(recipientEmail, paymentEmailSubject, paymentEmailBody);
+        console.log('✅ Payment status update email sent successfully');
+      } catch (emailError) {
+        console.error('❌ Error sending payment status update email:', emailError);
         // Don't fail the request if email fails
       }
     }

@@ -30,11 +30,11 @@ export async function GET(request: NextRequest) {
     `;
     const ordersResult = await executeQuery(ordersQuery, [vendor_id]) as any[];
 
-    // Get completed orders
+    // Get completed orders (scheduled orders are considered completed for stats)
     const completedQuery = `
       SELECT COUNT(*) as completedOrders
       FROM service_orders 
-      WHERE vendor_id = ? AND service_status = 'completed'
+      WHERE vendor_id = ? AND service_status = 'scheduled'
     `;
     const completedResult = await executeQuery(completedQuery, [vendor_id]) as any[];
 
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     const pendingQuery = `
       SELECT COUNT(*) as pendingOrders
       FROM service_orders 
-      WHERE vendor_id = ? AND service_status IN ('pending', 'confirmed', 'in_progress')
+      WHERE vendor_id = ? AND service_status = 'pending'
     `;
     const pendingResult = await executeQuery(pendingQuery, [vendor_id]) as any[];
 

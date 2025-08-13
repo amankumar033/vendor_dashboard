@@ -17,7 +17,7 @@ import {
   CheckIcon,          // Success/confirm icon
   InformationCircleIcon, // Info icon
   TagIcon,            // Category/classification icon
-  CurrencyDollarIcon, // Price/payment icon
+
 } from "@heroicons/react/24/outline";
 import { 
   FiDownload, 

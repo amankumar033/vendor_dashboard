@@ -397,7 +397,7 @@ export default function ServiceRequestsManagement() {
                       <td className="hidden md:table-cell px-6 py-4">
                         <div className="text-sm text-gray-900">
                           <div className="font-medium">{metadata.service_category} - {metadata.service_type}</div>
-                          <div className="text-gray-500">${metadata.base_price} • {metadata.duration_minutes} min</div>
+                          <div className="text-gray-500">₹{metadata.base_price} • {metadata.duration_minutes} min</div>
                         </div>
                       </td>
                       <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap">
@@ -547,11 +547,11 @@ export default function ServiceRequestsManagement() {
 
                       <div className="bg-gray-50 rounded-lg p-3">
                         <div className="flex items-center">
-                          <CurrencyDollarIcon className="w-4 h-4 text-gray-600 mr-2" />
+                          <span className="w-4 h-4 text-gray-600 mr-2 text-lg font-bold">₹</span>
                           <div>
                             <div className="font-semibold text-sm text-gray-700">Price & Duration</div>
                             <div className="text-sm text-gray-600">
-                              ${metadata.base_price || '0'} • {metadata.duration_minutes || '0'} minutes
+                              ₹{metadata.base_price || '0'} • {metadata.duration_minutes || '0'} minutes
                             </div>
                           </div>
                         </div>

@@ -222,6 +222,8 @@ export default function NotificationBell() {
         return '🛠️';
       case 'service_order_created':
         return '📋';
+      case 'service_order_placed':
+        return '📋';
       case 'service_order_accepted':
         return '✅';
       case 'service_order_rejected':
@@ -231,30 +233,7 @@ export default function NotificationBell() {
     }
   };
 
-  const getNotificationColor = (type: string) => {
-    switch (type) {
-      case 'order_recieved':
-        return 'bg-blue-100 text-blue-800';
-      case 'product_approved':
-        return 'bg-green-100 text-green-800';
-      case 'product_rejected':
-        return 'bg-red-100 text-red-800';
-      case 'user_registered':
-        return 'bg-purple-100 text-purple-800';
-      case 'service_created':
-        return 'bg-orange-100 text-orange-800';
-      case 'product_created':
-        return 'bg-orange-100 text-orange-800';
-      case 'service_order_created':
-        return 'bg-blue-100 text-blue-800';
-      case 'service_order_accepted':
-        return 'bg-green-100 text-green-800';
-      case 'service_order_rejected':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+
 
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
@@ -393,28 +372,33 @@ export default function NotificationBell() {
                   className={`p-4 hover:bg-gray-50 transition-all duration-200 cursor-pointer border-b border-gray-100 ${
                     !notification.is_read ? 'bg-blue-50/50' : 'bg-gray-25'
                   }`}
-                  onClick={() => navigateToNotification(notification.id)}
+                  onClick={() => {
+                    navigateToNotification(notification.id);
+                    // Mark as read when clicked
+                    if (!notification.is_read) {
+                      markAsRead(notification.id);
+                    }
+                  }}
                 >
                   <div className="flex items-start space-x-3">
                     <div className="flex-shrink-0">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${getNotificationColor(notification.type)}`}>
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg bg-gray-100">
                         {getNotificationIcon(notification.type)}
                       </div>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                                                     <p className={`text-sm font-semibold ${
-                             !notification.is_read ? 'text-gray-900' : 'text-gray-500'
-                           }`}>
-                             {notification.message}
-                           </p>
-                           {/* Show description if available */}
-                           {notification.description && (
-                             <p className="text-xs text-gray-600 mt-1 line-clamp-2">
-                               {notification.description}
-                             </p>
-                           )}
+                          <p className={`text-sm font-semibold ${
+                            !notification.is_read ? 'text-gray-900' : 'text-gray-500'
+                          }`}>
+                            {notification.message || notification.title || 'Notification'}
+                          </p>
+                          {notification.description && (
+                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                              {notification.description}
+                            </p>
+                          )}
                         </div>
                         <div className="flex flex-col items-end space-y-1 ml-2">
                           <span className="text-xs text-gray-400 font-mono">
@@ -436,7 +420,7 @@ export default function NotificationBell() {
                            )}
                            
                            {/* Action Buttons for Service Requests */}
-                           {notification.type === 'service_order_created' && !notification.is_read && (
+                           {(notification.type === 'service_order_created' || notification.type === 'service_order_placed') && !notification.is_read && (
                              <>
                                <button
                                  onClick={(e) => {
@@ -492,7 +476,7 @@ export default function NotificationBell() {
                          </div>
                          <div className="flex items-center space-x-2">
                            {/* Hide Mark as read button when action buttons are shown */}
-                           {!notification.is_read && notification.type !== 'service_order_created' && (
+                           {!notification.is_read && notification.type !== 'service_order_created' && notification.type !== 'service_order_placed' && (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();

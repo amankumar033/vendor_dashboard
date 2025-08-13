@@ -1,22 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from './ToastContainer';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { 
   BellIcon, 
+  TrashIcon,
   CheckIcon, 
   XMarkIcon, 
-  EyeIcon,
   MagnifyingGlassIcon, 
-  ArrowDownTrayIcon,
-  ArrowPathIcon,
-  ClockIcon,
-  TrashIcon,
-  CheckCircleIcon,
-  InformationCircleIcon
+  FunnelIcon
 } from '@heroicons/react/24/outline';
-import { useToast } from './ToastContainer';
 
 interface Notification {
   id: number;
@@ -24,12 +19,23 @@ interface Notification {
   title: string;
   message: string;
   description?: string;
-  for_vendor: number;
-  vendor_id: string;
+  for_admin: boolean;
+  for_dealer: boolean;
+  for_user: boolean;
+  for_vendor: boolean;
+  product_id?: number;
+  order_id?: number;
+  user_id?: number;
+  vendor_id?: number;
+  dealer_id?: number;
   is_read: boolean;
+  is_delivered: boolean;
+  whatsapp_delivered: boolean;
+  email_delivered: boolean;
+  sms_delivered: boolean;
+  metadata?: any;
   created_at: string;
   updated_at: string;
-  metadata?: any;
 }
 
 export default function NotificationsManagement() {
@@ -43,10 +49,21 @@ export default function NotificationsManagement() {
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
   const [error, setError] = useState('');
-  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
+  const [expandedNotifications, setExpandedNotifications] = useState<Set<number>>(new Set());
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+
+ 
+  useEffect(() => {
+    if (vendor?.vendor_id) {
+      fetchNotifications();
+      const interval = setInterval(() => {
+        fetchNotifications();
+      }, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [vendor]);
 
   // Check for notification ID in URL params for routing from notification bell
   useEffect(() => {
@@ -54,7 +71,7 @@ export default function NotificationsManagement() {
     if (notificationId && notifications.length > 0) {
       const notification = notifications.find(n => n.id.toString() === notificationId);
       if (notification) {
-        setSelectedNotification(notification);
+        setExpandedNotifications(new Set([notification.id]));
         // Clear the URL parameter
         const newUrl = new URL(window.location.href);
         newUrl.searchParams.delete('notification');
@@ -64,30 +81,29 @@ export default function NotificationsManagement() {
   }, [searchParams, notifications, router]);
 
   useEffect(() => {
-    if (vendor?.vendor_id) {
-      fetchNotifications();
-    }
-  }, [vendor]);
-
-  useEffect(() => {
     filterNotifications();
   }, [notifications, searchTerm, statusFilter, typeFilter]);
 
   const fetchNotifications = async () => {
+    if (!vendor?.vendor_id) return;
+
     try {
-      setIsLoading(true);
-      const response = await fetch(`/api/notifications?vendor_id=${vendor?.vendor_id}&limit=100`);
+      const response = await fetch(`/api/notifications?vendor_id=${vendor.vendor_id}&limit=100`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch notifications');
+      }
       const data = await response.json();
       
-      if (data.success) {
+      // Handle the API response structure
+      if (data.success && data.notifications) {
         setNotifications(data.notifications);
       } else {
-        setError('Failed to fetch notifications');
-        showError('Failed to fetch notifications', data.error || 'Please try again later');
+        setNotifications(data);
       }
+      setError('');
     } catch (err) {
-      setError('Error fetching notifications');
-      showError('Error fetching notifications', 'Please check your connection and try again');
+      console.error('Error fetching notifications:', err);
+      setError('Failed to load notifications');
     } finally {
       setIsLoading(false);
     }
@@ -116,27 +132,42 @@ export default function NotificationsManagement() {
     setFilteredNotifications(filtered);
   };
 
+  const toggleExpanded = (notificationId: number) => {
+    setExpandedNotifications(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(notificationId)) {
+        newSet.delete(notificationId);
+      } else {
+        newSet.add(notificationId);
+      }
+      return newSet;
+    });
+  };
+
   const markAsRead = async (notificationId: number) => {
     setIsProcessing(`read-${notificationId}`);
     try {
-      const response = await fetch('/api/notifications', {
-        method: 'PUT',
+      const response = await fetch(`/api/notifications/${notificationId}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notification_id: notificationId, action: 'read' }),
+        body: JSON.stringify({ is_read: true })
       });
 
-      if (response.ok) {
+      if (!response.ok) {
+        throw new Error('Failed to mark notification as read');
+      }
+
         setNotifications(prev => 
-          prev.map(n => 
-            n.id === notificationId ? { ...n, is_read: true } : n
+        prev.map(notification => 
+          notification.id === notificationId 
+            ? { ...notification, is_read: true }
+            : notification
           )
         );
         showSuccess('Notification marked as read');
-      } else {
+    } catch (err) {
+      console.error('Error marking notification as read:', err);
         showError('Failed to mark notification as read');
-      }
-    } catch (error) {
-      showError('Error marking notification as read', 'Please try again');
     } finally {
       setIsProcessing(null);
     }
@@ -145,21 +176,19 @@ export default function NotificationsManagement() {
   const removeNotification = async (notificationId: number) => {
     setIsProcessing(`remove-${notificationId}`);
     try {
-      const response = await fetch('/api/notifications', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notification_id: notificationId, action: 'remove' }),
+      const response = await fetch(`/api/notifications/${notificationId}`, {
+        method: 'DELETE'
       });
 
-      if (response.ok) {
-        setNotifications(prev => prev.filter(n => n.id !== notificationId));
-        setSelectedNotification(null);
-        showSuccess('Notification removed');
-      } else {
-        showError('Failed to remove notification');
+      if (!response.ok) {
+        throw new Error('Failed to remove notification');
       }
-    } catch (error) {
-      showError('Error removing notification', 'Please try again');
+
+      setNotifications(prev => prev.filter(notification => notification.id !== notificationId));
+        showSuccess('Notification removed');
+    } catch (err) {
+      console.error('Error removing notification:', err);
+        showError('Failed to remove notification');
     } finally {
       setIsProcessing(null);
     }
@@ -170,70 +199,38 @@ export default function NotificationsManagement() {
     try {
       const response = await fetch('/api/service-requests', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          notification_id: notificationId,
-          action: action,
-          vendor_id: vendor?.vendor_id
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notification_id: notificationId, action })
       });
 
-      const data = await response.json();
-      
-      if (data.success) {
-        // Update the notification type in the local state
-        setNotifications(prev => 
-          prev.map(n => 
-            n.id === notificationId 
-              ? { 
-                  ...n, 
-                  type: action === 'accept' ? 'service_order_accepted' : 'service_order_rejected',
-                  is_read: true 
-                }
-              : n
-          )
-        );
-        
-        showSuccess(`Service request ${action}ed successfully`);
-      } else {
-        showError('Action failed', data.error || 'Please try again');
+      if (!response.ok) {
+        throw new Error(`Failed to ${action} service request`);
       }
-    } catch (error) {
-      showError('Error processing service request action', 'Please try again');
+
+      const result = await response.json();
+      
+      // Update the notification in the list
+      setNotifications(prev => 
+        prev.map(notification => 
+          notification.id === notificationId 
+            ? { 
+                ...notification, 
+                type: result.type,
+                title: result.title,
+                message: result.message,
+                description: result.description,
+                is_read: true
+              }
+            : notification
+        )
+      );
+
+      showSuccess(`Service request ${action}ed successfully`);
+    } catch (err) {
+      console.error(`Error ${action}ing service request:`, err);
+      showError(`Failed to ${action} service request`);
     } finally {
       setIsProcessing(null);
-    }
-  };
-
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case 'order_recieved': return '📦';
-      case 'product_approved': return '✅';
-      case 'product_rejected': return '❌';
-      case 'user_registered': return '👤';
-      case 'service_created': return '🛠️';
-      case 'product_created': return '🛠️';
-      case 'service_order_created': return '📋';
-      case 'service_order_accepted': return '✅';
-      case 'service_order_rejected': return '❌';
-      default: return '🔔';
-    }
-  };
-
-  const getNotificationColor = (type: string) => {
-    switch (type) {
-      case 'order_recieved': return 'bg-blue-100 text-blue-800';
-      case 'product_approved': return 'bg-green-100 text-green-800';
-      case 'product_rejected': return 'bg-red-100 text-red-800';
-      case 'user_registered': return 'bg-purple-100 text-purple-800';
-      case 'service_created': return 'bg-orange-100 text-orange-800';
-      case 'product_created': return 'bg-orange-100 text-orange-800';
-      case 'service_order_created': return 'bg-blue-100 text-blue-800';
-      case 'service_order_accepted': return 'bg-green-100 text-green-800';
-      case 'service_order_rejected': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -246,40 +243,152 @@ export default function NotificationsManagement() {
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
     if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
     if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-    return `${Math.floor(diffInSeconds / 2592000)}mo ago`;
+    return date.toLocaleDateString();
+  };
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'service_order_created':
+        return '📋';
+      case 'service_order_placed':
+        return '📋';
+      case 'service_order_accepted':
+        return '✅';
+      case 'service_order_rejected':
+        return '❌';
+      case 'payment_received':
+        return '💰';
+      case 'service_completed':
+        return '🎉';
+      default:
+        return '📢';
+    }
+  };
+
+
+
+  const formatMetadata = (metadata: any) => {
+    if (!metadata) return null;
+    
+    try {
+      const parsed = typeof metadata === 'string' ? JSON.parse(metadata) : metadata;
+      
+      const formattedData: { [key: string]: string } = {};
+      
+      // Only show specific fields as requested
+      const allowedFields: { [key: string]: string } = {
+        service_order_id: 'Order ID',
+        service_name: 'Service Name',
+        final_price: 'Price',
+        service_date: 'Date',
+        service_time: 'Time',
+        customer_name: 'Customer Name',
+        customer_email: 'Customer Email',
+        customer_phone: 'Customer Phone',
+        service_address: 'Customer Address',
+        service_status: 'Status',
+        payment_status: 'Payment Status'
+      };
+      
+      Object.entries(parsed).forEach(([key, value]) => {
+        if (allowedFields[key] && value !== null && value !== undefined && value !== '') {
+          const label = allowedFields[key];
+          
+          // Format dates
+          if (key === 'service_date' && typeof value === 'string') {
+            try {
+              const date = new Date(value);
+              formattedData[label] = date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              });
+            } catch {
+              formattedData[label] = String(value);
+            }
+          }
+          // Format times
+          else if (key === 'service_time' && typeof value === 'string') {
+            try {
+              const time = new Date(`2000-01-01T${value}`);
+              formattedData[label] = time.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit'
+              });
+            } catch {
+              formattedData[label] = String(value);
+            }
+          }
+          // Format prices
+          else if (key === 'final_price' && typeof value === 'number') {
+            formattedData[label] = `₹${value.toFixed(2)}`;
+          }
+          // Format prices as string
+          else if (key === 'final_price' && typeof value === 'string') {
+            formattedData[label] = `₹${value}`;
+          }
+          // Default formatting
+          else {
+            formattedData[label] = String(value);
+          }
+        }
+      });
+      
+      return formattedData;
+    } catch (error) {
+      return null;
+    }
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-16">
+        <p className="text-red-600">{error}</p>
+        <button 
+          onClick={fetchNotifications}
+          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          Retry
+        </button>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white p-6 rounded-lg shadow-sm">
-        <div className="flex items-center justify-between mb-4">
+      {/* Header with Stats */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
-            <BellIcon className="h-8 w-8 text-blue-600" />
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <BellIcon className="h-6 w-6 text-blue-600" />
+            </div>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
-              <p className="text-gray-600">Manage and view all system notifications.</p>
+              <p className="text-gray-600">Manage your notifications and service requests</p>
             </div>
           </div>
           <button
             onClick={fetchNotifications}
-            className="flex items-center px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors"
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
-            <ArrowPathIcon className="w-4 h-4 mr-2" />
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
             Refresh
           </button>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -308,7 +417,9 @@ export default function NotificationsManagement() {
                 <p className="text-sm font-medium text-green-600">Read</p>
                 <p className="text-2xl font-bold text-green-900">{notifications.filter(n => n.is_read).length}</p>
               </div>
-              <CheckCircleIcon className="h-8 w-8 text-green-600" />
+              <svg className="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
             </div>
           </div>
           
@@ -318,76 +429,105 @@ export default function NotificationsManagement() {
                 <p className="text-sm font-medium text-purple-600">Filtered</p>
                 <p className="text-2xl font-bold text-purple-900">{filteredNotifications.length}</p>
               </div>
-              <div className="h-8 w-8 bg-purple-100 rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
-                </svg>
+              <FunnelIcon className="h-8 w-8 text-purple-600" />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Search and Filter */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
+      {/* Filters */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Filters & Search</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Search */}
             <div className="relative">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search notifications..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
-          </div>
 
-          <div className="flex gap-2">
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Types</option>
-              {[...new Set(notifications.map(n => n.type))].map(type => (
-                <option key={type} value={type}>
-                  {type.replace('_', ' ').toUpperCase()}
-                </option>
-              ))}
-            </select>
-
+          {/* Status Filter */}
+          <div className="relative">
+            <FunnelIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
             >
               <option value="">All Status</option>
-              <option value="unread">Unread</option>
               <option value="read">Read</option>
+              <option value="unread">Unread</option>
+            </select>
+          </div>
+
+          {/* Type Filter */}
+          <div className="relative">
+            <FunnelIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
+            >
+              <option value="">All Types</option>
+              <option value="service_order_created">Service Order Created</option>
+              <option value="service_order_placed">Service Order Placed</option>
+              <option value="service_order_accepted">Service Order Accepted</option>
+              <option value="service_order_rejected">Service Order Rejected</option>
+              <option value="payment_received">Payment Received</option>
+              <option value="service_completed">Service Completed</option>
             </select>
           </div>
         </div>
       </div>
 
       {/* Notifications List */}
-      <div className="space-y-4">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Notifications ({filteredNotifications.length})
+          </h3>
+        </div>
+        <div className="divide-y divide-gray-200">
         {filteredNotifications.length > 0 ? (
           filteredNotifications.map((notification) => (
             <div
               key={notification.id}
-              className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-all duration-200 group"
+                className={`p-6 hover:bg-gray-50 transition-all duration-200 ${
+                  !notification.is_read ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+                }`}
             >
               {/* Initial View */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3 flex-1">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <InformationCircleIcon className="h-5 w-5 text-blue-600" />
-                  <div className="flex-1">
-                    <h3 className="text-sm font-semibold text-gray-900">{notification.title}</h3>
-                    <p className="text-xs text-gray-500">
+                <div className="flex items-start space-x-4">
+                  {/* Notification Icon */}
+                  <div className="flex-shrink-0">
+                    <div className="p-2 rounded-full bg-gray-100">
+                      <span className="text-lg">{getNotificationIcon(notification.type)}</span>
+                    </div>
+                  </div>
+
+                  {/* Notification Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 cursor-pointer" onClick={() => toggleExpanded(notification.id)}>
+                        <div className="flex items-center space-x-2 mb-2">
+                          <h3 className="text-sm font-semibold text-gray-900 hover:text-blue-600 transition-colors">
+                            {notification.message}
+                          </h3>
+
+                          {notification.description && notification.type !== 'service_order_created' && notification.type !== 'service_order_placed' && (
+                            <span className="text-xs text-blue-500 font-medium">(Click to expand)</span>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center space-x-4 text-xs text-gray-500">
+                          <span>{formatTimeAgo(notification.created_at)}</span>
+                          <span>•</span>
+                          <span>
                       {new Date(notification.created_at).toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'short',
@@ -395,16 +535,32 @@ export default function NotificationsManagement() {
                         hour: '2-digit',
                         minute: '2-digit'
                       })}
-                    </p>
+                          </span>
                   </div>
                 </div>
                 
-                <div className="flex items-center space-x-3">
-                  <span className="text-xs text-gray-500">{formatTimeAgo(notification.created_at)}</span>
+                      {/* Action Buttons */}
+                      <div className="flex items-center space-x-2 ml-4">
+                        {!notification.is_read && notification.type !== 'service_order_created' && notification.type !== 'service_order_placed' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              markAsRead(notification.id);
+                            }}
+                            disabled={isProcessing === `read-${notification.id}`}
+                            className="text-green-600 hover:text-green-800 disabled:opacity-50 text-sm font-medium"
+                          >
+                            Mark as Read
+                          </button>
+                        )}
+                        
                   <button
-                    onClick={() => removeNotification(notification.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeNotification(notification.id);
+                          }}
                     disabled={isProcessing === `remove-${notification.id}`}
-                    className="text-red-600 hover:text-red-800 disabled:opacity-50"
+                          className="text-red-600 hover:text-red-800 disabled:opacity-50 p-1 rounded"
                     title="Remove Notification"
                   >
                     <TrashIcon className="h-4 w-4" />
@@ -412,217 +568,219 @@ export default function NotificationsManagement() {
                 </div>
               </div>
 
-              {/* Hover View - Full Data */}
-              <div className="mt-3 pt-3 border-t border-gray-100 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <div className="space-y-2">
-                  <p className="text-sm text-gray-700">{notification.message}</p>
-                  
-                  {/* Show description if available */}
-                  {notification.description && (
-                    <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
-                      {notification.description}
-                    </p>
-                  )}
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getNotificationColor(notification.type)}`}>
-                        {getNotificationIcon(notification.type)} {notification.type.replace('_', ' ').toUpperCase()}
-                      </span>
-                      {notification.is_read ? (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          <CheckCircleIcon className="w-3 h-3 mr-1" />
-                          Read
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          <InformationCircleIcon className="w-3 h-3 mr-1" />
-                          Unread
-                        </span>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      {/* Action Buttons for Service Requests */}
-                      {notification.type === 'service_order_created' && !notification.is_read && (
-                        <>
-                          <button
-                            onClick={() => handleServiceRequestAction(notification.id, 'accept')}
-                            disabled={isProcessing === `accept-${notification.id}`}
-                            className={`text-xs font-medium flex items-center px-2 py-1 rounded border transition-colors ${
-                              isProcessing === `accept-${notification.id}`
-                                ? 'text-white bg-green-600 border-green-600 cursor-not-allowed'
-                                : 'text-white bg-green-600 hover:bg-green-700 border-green-600 hover:border-green-700'
-                            }`}
-                          >
-                            {isProcessing === `accept-${notification.id}` ? (
-                              <>
-                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
-                                <span>Accepting...</span>
-                              </>
-                            ) : (
-                              <>
-                                <CheckIcon className="h-3 w-3 mr-1" />
-                                Accept
-                              </>
-                            )}
-                          </button>
+                    {/* Expanded View - Full Data */}
+                    {expandedNotifications.has(notification.id) && (
+                      <div className="mt-4 pt-4 border-t border-gray-200">
+                        <div className="space-y-4">
+                          {/* Show description if available (but not for service_order_created) */}
+                          {notification.description && notification.type !== 'service_order_created' && notification.type !== 'service_order_placed' && (
+                            <div className="bg-gray-50 p-4 rounded-lg">
+                              <h4 className="text-sm font-medium text-gray-900 mb-2">Description</h4>
+                              <p className="text-sm text-gray-700 leading-relaxed">
+                                {notification.description}
+                              </p>
+                            </div>
+                          )}
                           
-                          <button
-                            onClick={() => handleServiceRequestAction(notification.id, 'reject')}
-                            disabled={isProcessing === `reject-${notification.id}`}
-                            className={`text-xs font-medium flex items-center px-2 py-1 rounded border transition-colors ${
-                              isProcessing === `reject-${notification.id}`
-                                ? 'text-white bg-red-600 border-red-600 cursor-not-allowed'
-                                : 'text-white bg-red-600 hover:bg-red-700 border-red-600 hover:border-red-700'
-                            }`}
-                          >
-                            {isProcessing === `reject-${notification.id}` ? (
-                              <>
-                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
-                                <span>Rejecting...</span>
-                              </>
-                            ) : (
-                              <>
-                                <XMarkIcon className="h-3 w-3 mr-1" />
-                                Reject
-                              </>
-                            )}
-                          </button>
-                        </>
-                      )}
-                      
-                      {!notification.is_read && notification.type !== 'service_order_created' && (
+                          {/* Show formatted metadata if available */}
+                          {notification.metadata && (
+                            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                              {(() => {
+                                const metadata = formatMetadata(notification.metadata);
+                                if (!metadata) return null;
+                                
+                                return (
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    {/* Order ID */}
+                                    {metadata['Order ID'] && (
+                                      <div className="flex flex-col">
+                                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                                          Order ID
+                                        </span>
+                                        <span className="text-sm text-gray-900 font-medium">
+                                          {metadata['Order ID']}
+                                        </span>
+                                      </div>
+                                    )}
+                                    
+                                    {/* Service Name */}
+                                    {metadata['Service Name'] && (
+                                      <div className="flex flex-col">
+                                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                                          Service Name
+                                        </span>
+                                        <span className="text-sm text-gray-900 font-medium">
+                                          {metadata['Service Name']}
+                                        </span>
+                                      </div>
+                                    )}
+                                    
+                                    {/* Date */}
+                                    {metadata['Date'] && (
+                                      <div className="flex flex-col">
+                                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                                          Date
+                                        </span>
+                                        <span className="text-sm text-gray-900 font-medium">
+                                          {metadata['Date']}
+                                        </span>
+                                      </div>
+                                    )}
+                                    
+                                    {/* Time */}
+                                    {metadata['Time'] && (
+                                      <div className="flex flex-col">
+                                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                                          Time
+                                        </span>
+                                        <span className="text-sm text-gray-900 font-medium">
+                                          {metadata['Time']}
+                                        </span>
+                                      </div>
+                                    )}
+                                    
+                                    {/* Total */}
+                                    {metadata['Price'] && (
+                                      <div className="flex flex-col">
+                                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                                          Total
+                                        </span>
+                                        <span className="text-sm text-gray-900 font-medium">
+                                          {metadata['Price']}
+                                        </span>
+                                      </div>
+                                    )}
+                                    
+                                    {/* Payment Status */}
+                                    {metadata['Payment Status'] && (
+                                      <div className="flex flex-col">
+                                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                                          Payment
+                                        </span>
+                                        <span className="text-sm text-gray-900 font-medium">
+                                          {metadata['Payment Status']}
+                                        </span>
+                                      </div>
+                                    )}
+                                    
+                                    {/* Customer */}
+                                    {metadata['Customer Name'] && (
+                                      <div className="flex flex-col">
+                                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                                          Customer
+                                        </span>
+                                        <span className="text-sm text-gray-900 font-medium">
+                                          {metadata['Customer Name']}
+                                        </span>
+                                        {metadata['Customer Email'] && (
+                                          <span className="text-xs text-gray-600">
+                                            {metadata['Customer Email']}
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+                                    
+                                    {/* Shipping/Address */}
+                                    {metadata['Customer Address'] && (
+                                      <div className="flex flex-col">
+                                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                                          Shipping
+                                        </span>
+                                        <span className="text-sm text-gray-900 font-medium">
+                                          {metadata['Customer Address']}
+                                        </span>
+                                        {metadata['Customer Phone'] && (
+                                          <span className="text-xs text-gray-600">
+                                            Pincode: {metadata['Customer Phone']}
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          )}
+                          
+                                                    {/* Notification Details */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <span className="text-sm font-medium text-gray-900">
+                                {getNotificationIcon(notification.type)} {notification.type.replace('_', ' ').toUpperCase()}
+                              </span>
+                            </div>
+                    
+                            {/* Action Buttons for Service Requests */}
+                            {(notification.type === 'service_order_created' || notification.type === 'service_order_placed') && !notification.is_read && (
+                              <div className="flex items-center space-x-3">
                         <button
-                          onClick={() => markAsRead(notification.id)}
-                          disabled={isProcessing === `read-${notification.id}`}
-                          className="text-green-600 hover:text-green-800 disabled:opacity-50 text-sm"
-                        >
-                          Mark as Read
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleServiceRequestAction(notification.id, 'accept');
+                                  }}
+                                  disabled={isProcessing === `accept-${notification.id}`}
+                                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                                    isProcessing === `accept-${notification.id}`
+                                      ? 'text-white bg-green-600 cursor-not-allowed'
+                                      : 'text-white bg-green-600 hover:bg-green-700'
+                                  }`}
+                                >
+                                  {isProcessing === `accept-${notification.id}` ? (
+                                    <>
+                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline"></div>
+                                      Accepting...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <CheckIcon className="h-4 w-4 mr-1 inline" />
+                                      Accept
+                                    </>
+                                  )}
                         </button>
-                      )}
+                                
                       <button
-                        onClick={() => setSelectedNotification(notification)}
-                        className="text-blue-600 hover:text-blue-800 text-sm"
-                      >
-                        View Details
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleServiceRequestAction(notification.id, 'reject');
+                                  }}
+                                  disabled={isProcessing === `reject-${notification.id}`}
+                                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                                    isProcessing === `reject-${notification.id}`
+                                      ? 'text-white bg-red-600 cursor-not-allowed'
+                                      : 'text-white bg-red-600 hover:bg-red-700'
+                                  }`}
+                                >
+                                  {isProcessing === `reject-${notification.id}` ? (
+                                    <>
+                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline"></div>
+                                      Rejecting...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <XMarkIcon className="h-4 w-4 mr-1 inline" />
+                                      Reject
+                                    </>
+                                  )}
                       </button>
                     </div>
+                            )}
                   </div>
+                        </div>
+                      </div>
+                    )}
                 </div>
               </div>
             </div>
           ))
         ) : (
-          <div className="text-center py-16 bg-white rounded-lg shadow-sm">
+            <div className="text-center py-16">
             <BellIcon className="mx-auto h-16 w-16 text-gray-400" />
             <h3 className="text-xl font-bold text-gray-900 mt-4">No notifications yet</h3>
             <p className="text-gray-600 mt-2">You're all caught up! New notifications will appear here.</p>
           </div>
         )}
-      </div>
-
-      {/* Notification Detail Modal */}
-      {selectedNotification && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-            <div className="flex justify-between items-start mb-4">
-              <h2 className="text-xl font-bold text-gray-900">Notification Details</h2>
-              <button
-                onClick={() => setSelectedNotification(null)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <XMarkIcon className="h-6 w-6" />
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <h3 className="font-semibold text-gray-900">{selectedNotification.title}</h3>
-                <p className="text-gray-600 mt-2">{selectedNotification.message}</p>
-                
-                {/* Show description if available */}
-                {selectedNotification.description && (
-                  <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                    <h4 className="font-medium text-gray-900 mb-2">Description:</h4>
-                    <p className="text-gray-700 text-sm leading-relaxed">{selectedNotification.description}</p>
-                  </div>
-                )}
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getNotificationColor(selectedNotification.type)}`}>
-                  {getNotificationIcon(selectedNotification.type)} {selectedNotification.type.replace('_', ' ').toUpperCase()}
-                </span>
-                {selectedNotification.is_read ? (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    Read
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    Unread
-                  </span>
-                )}
-              </div>
-              
-              <div className="text-sm text-gray-500">
-                Created: {new Date(selectedNotification.created_at).toLocaleString()}
-              </div>
-              
-              <div className="flex space-x-2 pt-4">
-                {/* Action Buttons for Service Requests in Modal */}
-                {selectedNotification.type === 'service_order_created' && !selectedNotification.is_read && (
-                  <>
-                    <button
-                      onClick={() => handleServiceRequestAction(selectedNotification.id, 'accept')}
-                      disabled={isProcessing === `accept-${selectedNotification.id}`}
-                      className={`px-4 py-2 text-white rounded-lg transition-colors ${
-                        isProcessing === `accept-${selectedNotification.id}`
-                          ? 'bg-green-600 cursor-not-allowed'
-                          : 'bg-green-600 hover:bg-green-700'
-                      }`}
-                    >
-                      {isProcessing === `accept-${selectedNotification.id}` ? 'Accepting...' : 'Accept'}
-                    </button>
-                    <button
-                      onClick={() => handleServiceRequestAction(selectedNotification.id, 'reject')}
-                      disabled={isProcessing === `reject-${selectedNotification.id}`}
-                      className={`px-4 py-2 text-white rounded-lg transition-colors ${
-                        isProcessing === `reject-${selectedNotification.id}`
-                          ? 'bg-red-600 cursor-not-allowed'
-                          : 'bg-red-600 hover:bg-red-700'
-                      }`}
-                    >
-                      {isProcessing === `reject-${selectedNotification.id}` ? 'Rejecting...' : 'Reject'}
-                    </button>
-                  </>
-                )}
-                
-                {!selectedNotification.is_read && selectedNotification.type !== 'service_order_created' && (
-                  <button
-                    onClick={() => markAsRead(selectedNotification.id)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                  >
-                    Mark as Read
-                  </button>
-                )}
-                <button
-                  onClick={() => removeNotification(selectedNotification.id)}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                >
-                  Remove
-                </button>
-                <button
-                  onClick={() => setSelectedNotification(null)}
-                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-                >
-                  Close
-                </button>
-              </div>
             </div>
           </div>
-        </div>
-      )}
     </div>
   );
 }

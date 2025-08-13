@@ -13,19 +13,16 @@ import {
   ChartBarIcon,
   UserGroupIcon,
   StarIcon,
-  BuildingStorefrontIcon,
+  BuildingOfficeIcon,
   ShoppingCartIcon,
   MapPinIcon,
   PlusIcon,
   CogIcon,
   UserIcon,
-  ClipboardDocumentCheckIcon ,
+  ClipboardDocumentCheckIcon,
   CubeIcon,
   ShoppingBagIcon,
-  CurrencyEuroIcon,
   ClipboardIcon,
-
-
 } from '@heroicons/react/24/outline';
 
 interface DashboardStats {
@@ -154,9 +151,9 @@ export default function DashboardOverview() {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'INR',
     }).format(amount);
   };
 
@@ -295,7 +292,7 @@ export default function DashboardOverview() {
         </h3>
       </div>
       <div className="p-2 lg:p-3 rounded-xl bg-gradient-to-br from-yellow-100 to-yellow-200 text-yellow-600 transition-all duration-300 hover:scale-110 hover:shadow-lg">
-        <CurrencyDollarIcon className="w-5 h-5 lg:w-6 lg:h-6 transition-transform duration-300 hover:rotate-12" />
+        <span className="text-2xl font-bold transition-transform duration-300 hover:rotate-12">₹</span>
       </div>
     </div>
     <p className="text-sm text-gray-500 mt-3 transition-colors duration-300">
