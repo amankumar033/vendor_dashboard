@@ -255,3 +255,4 @@ export async function sendServiceCompletedEmail(customerEmail: string, data: any
   await sendEmail(customerEmail, template.subject, template.html);
 }
 
+
