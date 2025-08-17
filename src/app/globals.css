@@ -45,6 +45,72 @@ html {
   box-sizing: border-box;
 }
 
+/* Responsive table styles */
+.table-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e0 #f7fafc;
+}
+
+.table-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: #f7fafc;
+  border-radius: 3px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 3px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: #a0aec0;
+}
+
+/* Ensure tables are properly responsive */
+.responsive-table {
+  min-width: 100%;
+  width: max-content;
+}
+
+/* Mobile table improvements */
+@media (max-width: 768px) {
+  .responsive-table {
+    font-size: 14px;
+  }
+  
+  .responsive-table th,
+  .responsive-table td {
+    padding: 8px 12px;
+    white-space: nowrap;
+  }
+}
+
+/* Ensure proper table cell alignment */
+.table-cell-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Mobile-friendly table actions */
+@media (max-width: 640px) {
+  .table-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .table-actions button {
+    font-size: 12px;
+    padding: 4px 8px;
+  }
+}
+
 /* Smooth transitions for mobile menu */
 .transition-all {
   transition-property: all;

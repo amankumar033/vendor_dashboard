@@ -210,19 +210,19 @@ export default function ServiceCategoriesManagement() {
       {/* Service Categories Table */}
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
         {filteredCategories.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+          <div className="table-container">
+            <table className="responsive-table min-w-full divide-y divide-gray-200">
               <thead>
                 <tr className="bg-gradient-to-r from-gray-50 to-blue-50">
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200">
                     Category Details
                   </th>
-                  <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200">
-                    Description
-                  </th>
-                  <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200">
-                    Created
-                  </th>
+                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200">
+                     Description
+                   </th>
+                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200">
+                     Created
+                   </th>
                                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200">
                      Services Count
                    </th>
@@ -243,30 +243,19 @@ export default function ServiceCategoriesManagement() {
                              <div className="text-xs sm:text-sm text-gray-600 transition-colors duration-300">ID: {category.service_category_id}</div>
                            </div>
                          </div>
-                                                 {/* Mobile-only info */}
-                         <div className="sm:hidden mt-2 space-y-1">
-                           <div className="text-xs text-gray-600 transition-colors duration-300">
-                             <span className="font-medium">Description:</span> {category.description || 'No description'}
-                           </div>
-                           <div className="text-xs text-gray-600 transition-colors duration-300">
-                             <span className="font-medium">Created:</span> {formatDate(category.created_at)}
-                           </div>
-                           <div className="text-xs text-gray-600 transition-colors duration-300">
-                             <span className="font-medium">Services:</span> {category.service_count || 0} present in the category
-                           </div>
-                         </div>
+
                       </div>
                     </td>
-                    <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap transition-colors duration-300">
-                      <div className="text-sm text-gray-900 transition-colors duration-300">
-                        {category.description || 'No description'}
-                      </div>
-                    </td>
-                    <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap transition-colors duration-300">
-                      <div className="text-sm text-gray-900 transition-colors duration-300">
-                        {formatDate(category.created_at)}
-                      </div>
-                    </td>
+                                         <td className="px-6 py-4 whitespace-nowrap transition-colors duration-300">
+                       <div className="text-sm text-gray-900 transition-colors duration-300">
+                         {category.description || 'No description'}
+                       </div>
+                     </td>
+                                         <td className="px-6 py-4 whitespace-nowrap transition-colors duration-300">
+                       <div className="text-sm text-gray-900 transition-colors duration-300">
+                         {formatDate(category.created_at)}
+                       </div>
+                     </td>
                                          <td className="px-3 sm:px-6 py-4 whitespace-nowrap transition-colors duration-300">
                        <div className="flex items-center space-x-2">
                          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 transition-colors duration-300">

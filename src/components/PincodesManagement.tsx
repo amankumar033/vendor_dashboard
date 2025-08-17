@@ -355,8 +355,8 @@ export default function PincodesManagement() {
 
       {/* Pincodes Table */}
       <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
-  <div className="overflow-x-auto">
-    <table className="min-w-full divide-y divide-gray-200">
+  <div className="table-container">
+    <table className="responsive-table min-w-full divide-y divide-gray-200">
       <thead>
         <tr className="bg-gradient-to-r from-gray-50 to-blue-50">
           <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
@@ -390,7 +390,7 @@ export default function PincodesManagement() {
               </div>
             </td>
             <td className="px-6 py-4 w-24">
-              <div className="flex justify-start space-x-2">
+              <div className="table-actions flex justify-start space-x-2">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();

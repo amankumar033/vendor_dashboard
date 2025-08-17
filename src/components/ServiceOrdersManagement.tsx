@@ -429,26 +429,26 @@ function formatDate(input: string | Date, formatString = 'MM/dd/yyyy'): string {
  
   
   {filteredOrders.length > 0 ? (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
+    <div className="table-container">
+      <table className="responsive-table min-w-full divide-y divide-gray-200">
         <thead>
           <tr className="bg-gradient-to-r from-gray-50 to-blue-50">
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200">
               Order Details
             </th>
-            <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200">
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200">
               Service
             </th>
-            <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200">
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200">
               Date & Time
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200">
               Price
             </th>
-            <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200">
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200">
               Status
             </th>
-            <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200">
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200">
               Payment
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200">
@@ -467,29 +467,17 @@ function formatDate(input: string | Date, formatString = 'MM/dd/yyyy'): string {
                   <div className="text-sm font-medium text-gray-900 transition-colors duration-300">Order #{order.service_order_id}</div>
                   <div className="text-xs sm:text-sm text-gray-600 transition-colors duration-300">User ID: {order.user_id}</div>
                   <div className="text-xs sm:text-sm text-gray-600 transition-colors duration-300">Pincode: {order.service_pincode}</div>
-                  {/* Mobile-only info */}
-                  <div className="sm:hidden mt-2 space-y-1">
-                    <div className="text-xs text-gray-600 transition-colors duration-300">
-                      <span className="font-medium">Service:</span> {order.service_name}
-                    </div>
-                    <div className="text-xs text-gray-600 transition-colors duration-300">
-                      <span className="font-medium">Date:</span> {formatDate(order.service_date)}
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      {getStatusBadge(order.service_status)}
-                      {getPaymentStatusBadge(order.payment_status)}
-                    </div>
-                  </div>
+
                 </div>
               </td>
-              <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap transition-colors duration-300">
+              <td className="px-6 py-4 whitespace-nowrap transition-colors duration-300">
                 <div>
                   <div className="text-sm font-medium text-gray-900 transition-colors duration-300">{order.service_name}</div>
                   <div className="text-sm text-gray-600 transition-colors duration-300">{order.service_category} - {order.service_type}</div>
                   <div className="text-sm text-gray-600 transition-colors duration-300">{order.duration_minutes} min</div>
                 </div>
               </td>
-              <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap transition-colors duration-300">
+              <td className="px-6 py-4 whitespace-nowrap transition-colors duration-300">
                 <div>
                   <div className="text-sm font-medium text-gray-900 transition-colors duration-300">{formatDate(order.service_date)}</div>
                   <div className="text-sm text-gray-600 transition-colors duration-300">{formatTime(order.service_time)}</div>
@@ -502,14 +490,14 @@ function formatDate(input: string | Date, formatString = 'MM/dd/yyyy'): string {
                 <div className="text-xs sm:text-sm text-gray-600 transition-colors duration-300">Base: ₹{order.base_price}</div>
                 </div>
               </td>
-              <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap transition-colors duration-300">
+              <td className="px-6 py-4 whitespace-nowrap transition-colors duration-300">
                 {getStatusBadge(order.service_status)}
               </td>
-              <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap transition-colors duration-300">
+              <td className="px-6 py-4 whitespace-nowrap transition-colors duration-300">
                 {getPaymentStatusBadge(order.payment_status)}
               </td>
               <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium transition-colors duration-300">
-                <div className="flex space-x-2">
+                <div className="table-actions flex space-x-2">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();

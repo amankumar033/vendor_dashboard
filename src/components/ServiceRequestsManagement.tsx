@@ -336,20 +336,20 @@ export default function ServiceRequestsManagement() {
         </div>
         
         {filteredRequests.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+          <div className="table-container">
+            <table className="responsive-table min-w-full divide-y divide-gray-200">
               <thead>
                 <tr className="bg-gradient-to-r from-gray-50 to-blue-50">
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                     Request
                   </th>
-                  <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                     Customer
                   </th>
-                  <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                     Service Details
                   </th>
-                  <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                     Date & Time
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
@@ -386,7 +386,7 @@ export default function ServiceRequestsManagement() {
                           </div>
                         </div>
                       </td>
-                      <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <UserIcon className="w-4 h-4 text-gray-400 mr-2" />
                           <span className="text-sm text-gray-900">
@@ -394,13 +394,13 @@ export default function ServiceRequestsManagement() {
                           </span>
                         </div>
                       </td>
-                      <td className="hidden md:table-cell px-6 py-4">
+                      <td className="px-6 py-4">
                         <div className="text-sm text-gray-900">
                           <div className="font-medium">{metadata.service_category} - {metadata.service_type}</div>
                           <div className="text-gray-500">₹{metadata.base_price} • {metadata.duration_minutes} min</div>
                         </div>
                       </td>
-                      <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
                           <div className="flex items-center">
                             <CalendarIcon className="w-4 h-4 text-gray-400 mr-1" />
@@ -419,7 +419,7 @@ export default function ServiceRequestsManagement() {
                          </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex space-x-2">
+                        <div className="table-actions flex space-x-2">
                                                      {request.type === 'service_order_created' && (
                             <>
                               <button

@@ -658,26 +658,26 @@ const fetchServices = async () => {
         </div>
         
         {services.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+          <div className="table-container">
+            <table className="responsive-table min-w-full divide-y divide-gray-200">
               <thead>
                 <tr className="bg-gradient-to-r from-gray-50 to-blue-50">
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200">
                     Service
                   </th>
-                  <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200">
                     Category
                   </th>
-                  <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200">
                     Type
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200">
                     Price
                   </th>
-                  <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200">
                     Duration
                   </th>
-                  <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200">
                     Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200">
@@ -699,29 +699,15 @@ const fetchServices = async () => {
                           className="text-xs sm:text-sm text-gray-600 truncate max-w-xs transition-colors duration-300"
                           dangerouslySetInnerHTML={{ __html: truncateDescription(service.description) }}
                         />
-                        {/* Mobile-only info */}
-                        <div className="sm:hidden mt-2 space-y-1">
-                          <div className="flex items-center space-x-2">
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 transition-colors duration-300">
-                              {service.category_name || service.service_category_id}
-                            </span>
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 transition-colors duration-300">
-                              {service.type}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-gray-600 transition-colors duration-300">{service.duration_minutes} min</span>
-                            {getStatusBadge(service.is_available)}
-                          </div>
-                        </div>
+
                       </div>
                     </td>
-                    <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap transition-colors duration-300">
+                    <td className="px-6 py-4 whitespace-nowrap transition-colors duration-300">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 transition-colors duration-300">
                         {service.category_name || service.service_category_id}
                       </span>
                     </td>
-                    <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap transition-colors duration-300">
+                    <td className="px-6 py-4 whitespace-nowrap transition-colors duration-300">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 transition-colors duration-300">
                         {service.type}
                       </span>
@@ -731,15 +717,15 @@ const fetchServices = async () => {
     ₹{typeof service.base_price === 'number' ? service.base_price.toFixed(2) : '0.00'}
   </div>
 </td>
-                    <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900 transition-colors duration-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 transition-colors duration-300">
                       {service.duration_minutes} min
                     </td>
-                    <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap transition-colors duration-300">
+                    <td className="px-6 py-4 whitespace-nowrap transition-colors duration-300">
                       {getStatusBadge(service.is_available)}
                     </td>
                   
                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium transition-colors duration-300">
-                      <div className="flex space-x-2">
+                      <div className="table-actions flex space-x-2">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
