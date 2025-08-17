@@ -72,7 +72,7 @@ const recentServiceOrders = await executeQuery(query, [vendor_id]);
 //              service_time, service_status, service_pincode, service_address,
 //              additional_notes, payment_method, payment_status, transaction_id,
 //              was_available
-//       FROM service_orders 
+//       FROM ServiceOrders 
 //       WHERE vendor_id = ?
 //       ORDER BY booking_date DESC
 //     `;

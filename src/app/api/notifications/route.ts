@@ -20,12 +20,16 @@ export async function GET(request: NextRequest) {
              product_id, order_id, user_id, vendor_id, dealer_id, is_read, is_delivered,
              whatsapp_delivered, email_delivered, sms_delivered, metadata, created_at, updated_at
       FROM notifications 
-      WHERE for_vendor = 1 AND vendor_id = ?
+      WHERE for_vendor = 1 AND vendor_id = ? AND (message IS NOT NULL OR title IS NOT NULL)
       ORDER BY created_at DESC
       LIMIT ${parseInt(limit)}
     `;
 
     const notifications = await executeQuery(query, [vendor_id]) as any[];
+
+    console.log('🔔 API - Notifications fetched for vendor:', vendor_id);
+    console.log('🔔 API - Raw notifications count:', notifications.length);
+    console.log('🔔 API - Sample notifications:', notifications.slice(0, 3));
 
     return NextResponse.json({
       success: true,
@@ -56,11 +60,26 @@ export async function PUT(request: NextRequest) {
     let updateQuery: string;
     let message: string;
 
+    // Get current India/Delhi time
+    const indiaTime = new Date().toLocaleString("en-US", {
+      timeZone: "Asia/Kolkata",
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+    
+    // Convert to MySQL datetime format (YYYY-MM-DD HH:MM:SS)
+    const currentTimestamp = indiaTime.replace(/(\d+)\/(\d+)\/(\d+),\s(\d+):(\d+):(\d+)/, '$3-$1-$2 $4:$5:$6');
+    
     if (action === 'remove') {
       // Set for_vendor to 0 to remove from vendor view
       updateQuery = `
         UPDATE notifications 
-        SET for_vendor = 0, updated_at = NOW()
+        SET for_vendor = 0, updated_at = ?
         WHERE id = ?
       `;
       message = 'Notification removed from view';
@@ -68,13 +87,13 @@ export async function PUT(request: NextRequest) {
       // Default action: mark as read
       updateQuery = `
         UPDATE notifications 
-        SET is_read = 1, updated_at = NOW()
+        SET is_read = 1, updated_at = ?
         WHERE id = ?
       `;
       message = 'Notification marked as read';
     }
 
-    await executeQuery(updateQuery, [notification_id]);
+    await executeQuery(updateQuery, [currentTimestamp, notification_id]);
 
     return NextResponse.json({
       success: true,

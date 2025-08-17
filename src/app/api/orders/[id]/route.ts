@@ -30,7 +30,7 @@ export async function PUT(
     // First check if the order belongs to the vendor and get customer details
     const checkQuery = `
       SELECT so.*, u.email as customer_email, u.full_name as customer_name
-      FROM service_orders so
+      FROM ServiceOrders so
       LEFT JOIN users u ON so.user_id = u.user_id
       WHERE so.service_order_id = ? AND so.vendor_id = ?
     `;
@@ -48,7 +48,7 @@ export async function PUT(
     const previousStatus = order.service_status;
 
     const updateQuery = `
-      UPDATE service_orders 
+      UPDATE ServiceOrders 
       SET service_status = ?
       WHERE service_order_id = ? AND vendor_id = ?
     `;
@@ -58,8 +58,24 @@ export async function PUT(
     // Send email notification if status changed
     if (previousStatus !== service_status) {
       try {
-        const recipientEmail = order.customer_email || 'customer@example.com';
+        // Enhanced email recipient validation
+        const recipientEmail = order.customer_email;
         const customerName = order.customer_name || 'Customer';
+        
+        // Log customer email details for debugging
+        console.log('🔍 Customer email details:', {
+          customer_email: order.customer_email,
+          customer_name: order.customer_name,
+          user_id: order.user_id,
+          order_id: order_id
+        });
+        
+        if (!recipientEmail || recipientEmail === 'customer@example.com') {
+          console.warn('⚠️  No valid customer email found for order:', order_id);
+          console.warn('⚠️  Cannot send status update email without customer email');
+          console.warn('⚠️  Status update email will be skipped for:', service_status);
+          // Continue execution - don't return early, just skip email sending
+        } else {
         
         const emailSubject = `Service Order Status Updated - ${service_status.toUpperCase()}`;
         const emailBody = `
@@ -77,14 +93,17 @@ export async function PUT(
             <p><strong>Service Date:</strong> ${order.service_date}</p>
             <p><strong>Service Time:</strong> ${order.service_time}</p>
             <p><strong>Service Address:</strong> ${order.service_address}</p>
+            ${order.final_price ? `<p><strong>Amount:</strong> ₹${order.final_price}</p>` : ''}
           </div>
 
           ${service_status === 'scheduled' ? `
             <p>Your service has been scheduled. Please be ready at the specified time and location.</p>
             <p>The vendor will contact you shortly to confirm the final details.</p>
           ` : service_status === 'cancelled' ? `
-            <p>Your service has been cancelled. If you have any questions, please contact us.</p>
-            <p>You may be eligible for a refund depending on our cancellation policy.</p>
+            <p><strong>Your service has been cancelled.</strong></p>
+            <p>We apologize for any inconvenience caused. If you have any questions, please contact us immediately.</p>
+            <p>You may be eligible for a full refund depending on our cancellation policy.</p>
+            <p>Our customer service team will contact you shortly regarding the refund process.</p>
           ` : service_status === 'rejected' ? `
             <p>Your service request has been rejected. Please contact us for more information.</p>
             <p>You may try booking with a different vendor or service.</p>
@@ -100,10 +119,28 @@ export async function PUT(
         `;
 
         console.log('📧 Sending status update email to:', recipientEmail);
+        console.log('📧 Email subject:', emailSubject);
+        console.log('📧 Status change:', `${previousStatus} → ${service_status}`);
+        
         await sendEmail(recipientEmail, emailSubject, emailBody);
-        console.log('✅ Status update email sent successfully');
+        console.log('✅ Status update email sent successfully to:', recipientEmail);
+        
+          // Special logging for cancellation emails
+          if (service_status === 'cancelled') {
+            console.log('📧 CANCELLATION EMAIL SENT SUCCESSFULLY to:', recipientEmail);
+            console.log('📧 Order ID:', order_id);
+            console.log('📧 Customer:', customerName);
+          }
+        }
+        
       } catch (emailError) {
         console.error('❌ Error sending status update email:', emailError);
+        console.error('❌ Email error details:', {
+          recipientEmail: order.customer_email,
+          service_status,
+          previousStatus,
+          order_id
+        });
         // Don't fail the request if email fails
       }
     }

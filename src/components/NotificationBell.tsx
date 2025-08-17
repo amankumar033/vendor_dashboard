@@ -77,7 +77,27 @@ export default function NotificationBell() {
       const data = await response.json();
       
       if (data.success) {
-        setNotifications(data.notifications);
+        console.log('🔔 Raw notifications received:', data.notifications);
+        
+        // Filter out problematic notifications before setting state
+        const cleanNotifications = data.notifications.filter((notification: any) => {
+          // Log notifications with for_vendor = 0 for debugging
+          if (notification.for_vendor === 0) {
+            console.log('🚫 Filtering out notification with for_vendor = 0:', notification);
+            return false;
+          }
+          
+          // Log notifications with empty messages
+          if (!notification.message && !notification.title) {
+            console.log('🚫 Filtering out notification with empty message:', notification);
+            return false;
+          }
+          
+          return true;
+        });
+        
+        console.log('🔔 Clean notifications after filtering:', cleanNotifications);
+        setNotifications(cleanNotifications);
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -240,18 +260,46 @@ export default function NotificationBell() {
     const diffInSeconds = Math.floor((currentTime.getTime() - date.getTime()) / 1000);
     
     if (diffInSeconds < 60) return 'Just now';
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-    if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-    return `${Math.floor(diffInSeconds / 2592000)}mo ago`;
+    
+    const minutes = Math.floor(diffInSeconds / 60);
+    const hours = Math.floor(diffInSeconds / 3600);
+    const days = Math.floor(diffInSeconds / 86400);
+    
+    if (diffInSeconds < 3600) {
+      return `${minutes}m ago`;
+    } else if (diffInSeconds < 86400) {
+      const remainingMinutes = minutes % 60;
+      if (remainingMinutes > 0) {
+        return `${hours}h ${remainingMinutes}m ago`;
+      } else {
+        return `${hours}h ago`;
+      }
+    } else if (diffInSeconds < 2592000) {
+      return `${days}d ago`;
+    } else {
+      const months = Math.floor(diffInSeconds / 2592000);
+      return `${months}mo ago`;
+    }
   };
 
   const filteredNotifications = notifications.filter(notification => {
-    // First filter by for_vendor = 1 (ensure it's a number)
+    // Filter out notifications with for_vendor = 0 or any falsy value
+    if (!notification.for_vendor || notification.for_vendor === 0) return false;
+    
+    // Ensure for_vendor is exactly 1 (for current vendor)
     if (notification.for_vendor !== 1) return false;
     
     // Filter by vendor_id to ensure only current vendor's notifications
     if (notification.vendor_id !== vendor?.vendor_id) return false;
+    
+    // Filter out notifications with empty or null messages
+    if (!notification.message && !notification.title) return false;
+    
+    // Filter out notifications with problematic content (just "0")
+    if (notification.message === '0' || notification.title === '0' || notification.description === '0') {
+      console.log('🚫 Filtering out notification with "0" content:', notification);
+      return false;
+    }
     
     // Then filter by tab
     if (activeTab === 'unread') return !notification.is_read;
@@ -366,8 +414,16 @@ export default function NotificationBell() {
                 <p className="text-sm">You're all caught up!</p>
               </div>
             ) : (
-              filteredNotifications.map((notification) => (
-                                                 <div
+              filteredNotifications.map((notification) => {
+                // Debug logging for notifications with "0" content
+                if (notification.message === '0' || notification.description === '0' || 
+                    notification.title === '0' || notification.message?.includes(' 0 ') ||
+                    notification.description?.includes(' 0 ')) {
+                  console.log('🚫 Found notification with "0" content:', notification);
+                }
+                
+                return (
+                  <div
                   key={notification.id}
                   className={`p-4 hover:bg-gray-50 transition-all duration-200 cursor-pointer border-b border-gray-100 ${
                     !notification.is_read ? 'bg-blue-50/50' : 'bg-gray-25'
@@ -392,9 +448,16 @@ export default function NotificationBell() {
                           <p className={`text-sm font-semibold ${
                             !notification.is_read ? 'text-gray-900' : 'text-gray-500'
                           }`}>
-                            {notification.message || notification.title || 'Notification'}
+                            {(() => {
+                              const message = notification.message || notification.title || 'Notification';
+                              // Filter out standalone "0" values
+                              if (message === '0' || message === '0.00' || message === '0.0') {
+                                return 'Notification';
+                              }
+                              return message;
+                            })()}
                           </p>
-                          {notification.description && (
+                          {notification.description && notification.description !== '0' && (
                             <p className="text-xs text-gray-500 mt-1 line-clamp-2">
                               {notification.description}
                             </p>
@@ -412,12 +475,6 @@ export default function NotificationBell() {
                        <div className="flex items-center justify-between mt-3">
                          <div className="flex items-center space-x-2">
                            {/* Show Read tag only if not a service request */}
-                           {notification.is_read && notification.type !== 'service_order_created' && (
-                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                               <CheckIcon className="h-3 w-3 mr-1" />
-                               Read
-                             </span>
-                           )}
                            
                            {/* Action Buttons for Service Requests */}
                            {(notification.type === 'service_order_created' || notification.type === 'service_order_placed') && !notification.is_read && (
@@ -526,7 +583,8 @@ export default function NotificationBell() {
                     </div>
                   </div>
                 </div>
-              ))
+              );
+              })
             )}
           </div>
 

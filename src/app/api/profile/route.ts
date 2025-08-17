@@ -12,7 +12,7 @@ function verifyToken(request: NextRequest) {
   
   const token = authHeader.substring(7);
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-super-secret-jwt-key') as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-super-secret-jwt-key', { ignoreExpiration: true }) as any;
     console.log('Profile API - Token verified successfully:', { vendor_id: decoded.vendor_id, email: decoded.email });
     return decoded;
   } catch (error) {

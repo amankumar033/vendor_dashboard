@@ -80,22 +80,22 @@ export async function POST(request: NextRequest) {
       await connection.beginTransaction();
       inTransaction = true;
 
-      // Prepare vendor prefix SRV + 3-digit vendor number
-      const numericVendorId = parseInt(String(vendor_id).replace(/\D/g, ''), 10);
-      if (!Number.isFinite(numericVendorId) || numericVendorId <= 0) {
-        throw new Error('Invalid vendor_id');
-      }
-      const vendorPrefix = String(numericVendorId).toString().padStart(3, '0');
-
-      // Validate vendor exists and lock its row for the duration (lightweight safeguard)
+      // Validate vendor exists first with the original vendor_id
       const [vendorRows] = await connection.execute(
         'SELECT vendor_id FROM vendors WHERE vendor_id = ? FOR UPDATE',
-        [numericVendorId]
+        [vendor_id]
       );
       const vendorExists = Array.isArray(vendorRows) && (vendorRows as any[]).length > 0;
       if (!vendorExists) {
-        throw new Error('Vendor not found');
+        throw new Error(`Vendor not found: ${vendor_id}`);
       }
+
+      // Prepare vendor prefix SRV + 3-digit vendor number from string vendor_id
+      const numericVendorId = parseInt(String(vendor_id).replace(/\D/g, ''), 10);
+      if (!Number.isFinite(numericVendorId) || numericVendorId <= 0) {
+        throw new Error('Invalid vendor_id format');
+      }
+      const vendorPrefix = String(numericVendorId).toString().padStart(3, '0');
 
       // Create (or ensure) sequence lock row for this vendor scope and lock it
       const idType = 'service_id';
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
       // Find the lowest available sequence number for this vendor by checking generated IDs
       const [idRows] = await connection.execute(
         `SELECT service_id FROM services WHERE vendor_id = ? AND service_id LIKE 'SRV%'`,
-        [numericVendorId]
+        [vendor_id]
       );
       const existingIds = new Set((idRows as any[]).map(r => String(r.service_id)));
 
@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
       `;
       const params = [
         service_id,
-        numericVendorId,
+        vendor_id, // Use original vendor_id format (VND001, VND002, etc.)
         name,
         description || '',
         service_category_id || '',
@@ -176,7 +176,20 @@ export async function POST(request: NextRequest) {
       inTransaction = false;
 
       // Create notification for admin when service is created
-      const currentTimestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
+      // Get current India/Delhi time
+      const indiaTime = new Date().toLocaleString("en-US", {
+        timeZone: "Asia/Kolkata",
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      });
+      
+      // Convert to MySQL datetime format (YYYY-MM-DD HH:MM:SS)
+      const currentTimestamp = indiaTime.replace(/(\d+)\/(\d+)\/(\d+),\s(\d+):(\d+):(\d+)/, '$3-$1-$2 $4:$5:$6');
       const notificationQuery = `
         INSERT INTO notifications (
           type, title, message, for_admin, for_dealer, for_user, for_vendor,
@@ -191,7 +204,7 @@ export async function POST(request: NextRequest) {
         for_dealer: 0,
         for_user: 0,
         for_vendor: 0,
-        vendor_id: numericVendorId,
+        vendor_id: vendor_id,
         is_read: 0,
         metadata: JSON.stringify({
           service_id: service_id,

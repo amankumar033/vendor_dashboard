@@ -200,7 +200,7 @@ export default function NotificationsManagement() {
       const response = await fetch('/api/service-requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notification_id: notificationId, action })
+        body: JSON.stringify({ notification_id: notificationId, action, vendor_id: vendor?.vendor_id })
       });
 
       if (!response.ok) {
@@ -240,10 +240,25 @@ export default function NotificationsManagement() {
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
     
     if (diffInSeconds < 60) return 'Just now';
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-    if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-    return date.toLocaleDateString();
+    
+    const minutes = Math.floor(diffInSeconds / 60);
+    const hours = Math.floor(diffInSeconds / 3600);
+    const days = Math.floor(diffInSeconds / 86400);
+    
+    if (diffInSeconds < 3600) {
+      return `${minutes}m ago`;
+    } else if (diffInSeconds < 86400) {
+      const remainingMinutes = minutes % 60;
+      if (remainingMinutes > 0) {
+        return `${hours}h ${remainingMinutes}m ago`;
+      } else {
+        return `${hours}h ago`;
+      }
+    } else if (diffInSeconds < 2592000) {
+      return `${days}d ago`;
+    } else {
+      return date.toLocaleDateString();
+    }
   };
 
   const getNotificationIcon = (type: string) => {

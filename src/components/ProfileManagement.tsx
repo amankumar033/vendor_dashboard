@@ -40,27 +40,45 @@ export default function ProfileManagement() {
   useEffect(() => {
     fetchProfile();
     fetchTotalServices();
-  }, []);
+  }, [token, vendor]);
 
   const fetchProfile = async () => {
     try {
+      console.log('🔍 Fetching profile with token:', token ? 'Token exists' : 'No token');
+      console.log('🔍 Vendor data from context:', vendor);
+      
       const response = await fetch('/api/profile', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
 
+      console.log('🔍 Profile API response status:', response.status);
+      console.log('🔍 Profile API response ok:', response.ok);
+
       if (response.ok) {
         const data = await response.json();
-        console.log('Profile data received:', data);
+        console.log('✅ Profile data received:', data);
         setProfile(data.vendor);
       } else {
-        console.error('Profile fetch failed:', response.status, response.statusText);
+        console.error('❌ Profile fetch failed:', response.status, response.statusText);
         const errorData = await response.json();
-        console.error('Error data:', errorData);
+        console.error('❌ Error data:', errorData);
+        
+        // If profile fetch fails, try to use vendor data from context
+        if (vendor) {
+          console.log('🔄 Using vendor data from context as fallback');
+          setProfile(vendor);
+        }
       }
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('❌ Error fetching profile:', error);
+      
+      // If there's an error, try to use vendor data from context
+      if (vendor) {
+        console.log('🔄 Using vendor data from context as fallback');
+        setProfile(vendor);
+      }
     } finally {
       setLoading(false);
     }
@@ -180,222 +198,139 @@ export default function ProfileManagement() {
         </div>
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Left Column - Basic Info */}
-        <div className="xl:col-span-2 space-y-6">
-          {/* Basic Information */}
-          <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
-            <div className="px-4 py-4 sm:py-5 sm:px-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center justify-center sm:justify-start">
-                <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                Basic Information
-              </h3>
-            </div>
+      {/* Basic Profile Information */}
+      <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
+        <div className="px-4 py-4 sm:py-5 sm:px-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center justify-center sm:justify-start">
+            <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            Vendor Profile
+          </h3>
+        </div>
         <div className="px-4 py-5 sm:p-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Vendor Name</label>
-                  <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
-                    {profile?.vendor_name || 'Not provided'}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Business Registration Number</label>
-                  <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
-                    {profile?.business_registration_number || 'Not provided'}
-                  </div>
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                  <div 
-                    className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200 min-h-[60px]"
-                    dangerouslySetInnerHTML={{ __html: profile?.vendor_description || 'Not provided' }}
-                  />
-                </div>
-                </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Vendor ID</label>
+              <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200 font-mono">
+                {profile?.vendor_id || 'Not provided'}
               </div>
             </div>
-
-            {/* Contact Information */}
-          <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
-            <div className="px-4 py-4 sm:py-5 sm:px-6 bg-gradient-to-r from-green-50 to-emerald-50 border-b border-gray-200">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center justify-center sm:justify-start">
-                <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-                Contact Information
-              </h3>
-            </div>
-            <div className="px-4 py-5 sm:p-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Contact Phone</label>
-                  <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
-                    {profile?.contact_phone || 'Not provided'}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Contact Email</label>
-                  <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
-                    {profile?.contact_email || 'Not provided'}
-                  </div>
-                  </div>
-                </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Business Name</label>
+              <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
+                {profile?.vendor_name || 'Not provided'}
               </div>
             </div>
-
-            {/* Address Information */}
-          <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
-            <div className="px-4 py-4 sm:py-5 sm:px-6 bg-gradient-to-r from-purple-50 to-violet-50 border-b border-gray-200">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center justify-center sm:justify-start">
-                <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                Address Information
-              </h3>
-            </div>
-            <div className="px-4 py-5 sm:p-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Business Address</label>
-                  <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
-                    {profile?.business_address || 'Not provided'}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
-                  <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
-                    {profile?.city || 'Not provided'}
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Postal Code</label>
-                  <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
-                    {profile?.postal_code || 'Not provided'}
-                  </div>
-                </div>
-               
-                </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Business Registration Number</label>
+              <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
+                {profile?.business_registration_number || 'Not provided'}
               </div>
             </div>
-
-            {/* Business Information */}
-          <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
-            <div className="px-4 py-4 sm:py-5 sm:px-6 bg-gradient-to-r from-orange-50 to-amber-50 border-b border-gray-200">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center justify-center sm:justify-start">
-                <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-                Business Information
-              </h3>
-            </div>
-            <div className="px-4 py-5 sm:p-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Years in Business</label>
-                  <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
-                    {profile?.years_in_business || 'Not provided'}
-                  </div>
-                </div>
-               
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Availability</label>
-                  <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
-                    {profile?.availability || 'Not provided'}
-                  </div>
-                  </div>
-                </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+              <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
+                {profile?.contact_email || 'Not provided'}
               </div>
             </div>
-
-            {/* Certification & Insurance */}
-          <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
-            <div className="px-4 py-4 sm:py-5 sm:px-6 bg-gradient-to-r from-indigo-50 to-blue-50 border-b border-gray-200">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center justify-center sm:justify-start">
-                <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Certification 
-              </h3>
-            </div>
-            <div className="px-4 py-5 sm:p-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Certification Status</label>
-                  <div className="mt-1">
-                    <span className={`px-3 py-1 inline-flex text-xs sm:text-sm font-semibold rounded-full ${
-                      profile?.is_certified 
-                        ? 'bg-green-100 text-green-800 border border-green-200' 
-                        : 'bg-red-100 text-red-800 border border-red-200'
-                    }`}>
-                      {profile?.is_certified ? 'Certified' : 'Not Certified'}
-                    </span>
-                  </div>
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Certification Details</label>
-                  <div 
-                    className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200 min-h-[60px]"
-                    dangerouslySetInnerHTML={{ __html: profile?.certification_details || 'Not provided' }}
-                  />
-                </div>
-                
-                <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Insurance Details</label>
-                  <div 
-                    className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200 min-h-[60px]"
-                    dangerouslySetInnerHTML={{ __html: profile?.insurance_details || 'Not provided' }}
-                  />
-                </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+              <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
+                {profile?.contact_phone || 'Not provided'}
               </div>
             </div>
-                  </div>
-                </div>
-
-        {/* Right Sidebar */}
-        <div className="space-y-6">
-          {/* Account Information */}
-          <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
-            <div className="px-4 py-5 sm:px-6 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                <svg className="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                Account Information
-              </h3>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
+              <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
+                {profile?.city || 'Not provided'}
+              </div>
             </div>
-            <div className="px-4 py-5 sm:p-6">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Vendor ID</label>
-                  <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
-                    {profile?.vendor_id || 'Not available'}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Member Since</label>
-                  <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
-                    {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : 'Not available'}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Last Updated</label>
-                  <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
-                    {profile?.updated_at ? new Date(profile.updated_at).toLocaleDateString() : 'Not available'}
-                  </div>
-                </div>
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Business Address</label>
+              <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
+                {profile?.business_address || 'Not provided'}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Postal Code</label>
+              <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
+                {profile?.postal_code || 'Not provided'}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Years in Business</label>
+              <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
+                {profile?.years_in_business || 'Not provided'}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Certification Status</label>
+              <div className="mt-1">
+                <span className={`px-3 py-1 inline-flex text-xs sm:text-sm font-semibold rounded-full ${
+                  profile?.is_certified 
+                    ? 'bg-green-100 text-green-800 border border-green-200' 
+                    : 'bg-red-100 text-red-800 border border-red-200'
+                }`}>
+                  {profile?.is_certified ? 'Certified' : 'Not Certified'}
+                </span>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Average Rating</label>
+              <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
+                {profile?.average_rating ? `${profile.average_rating}/5` : 'No ratings'}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Total Reviews</label>
+              <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
+                {profile?.total_reviews || 0}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Availability</label>
+              <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
+                {profile?.availability || 'Not specified'}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Account Status</label>
+              <div className="mt-1">
+                <span className={`px-3 py-1 inline-flex text-xs sm:text-sm font-semibold rounded-full ${
+                  profile?.is_active 
+                    ? 'bg-green-100 text-green-800 border border-green-200' 
+                    : 'bg-red-100 text-red-800 border border-red-200'
+                }`}>
+                  {profile?.is_active ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Member Since</label>
+              <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
+                {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : 'Not available'}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Last Updated</label>
+              <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
+                {profile?.updated_at ? new Date(profile.updated_at).toLocaleDateString() : 'Not available'}
+              </div>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+              <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200 min-h-[60px]">
+                {profile?.vendor_description || 'Not provided'}
+              </div>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Certification Details</label>
+              <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200 min-h-[60px]">
+                {profile?.certification_details || 'Not provided'}
               </div>
             </div>
           </div>
-
-
         </div>
       </div>
     </div>
