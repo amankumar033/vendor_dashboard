@@ -5,10 +5,11 @@ import nodemailer from 'nodemailer';
 // PUT - Update a service order
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const service_order_id = await params.id;
+    const { id } = await params;
+    const service_order_id = id;
     const {
       vendor_id,
       service_status,
@@ -251,10 +252,11 @@ async function sendEmail(to: string, subject: string, htmlBody: string) {
 // DELETE - Delete a service order
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const service_order_id = await params.id;
+    const { id } = await params;
+    const service_order_id = id;
     const { vendor_id } = await request.json();
 
     if (!vendor_id) {

@@ -4,9 +4,10 @@ import { executeQuery } from '@/lib/db';
 // GET - Fetch a specific product
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { searchParams } = new URL(request.url);
     const vendor_id = searchParams.get('vendor_id');
 
@@ -24,7 +25,7 @@ export async function GET(
       WHERE product_id = ? AND vendor_id = ?
     `;
 
-    const products = await executeQuery(query, [params.id, vendor_id]) as any[];
+    const products = await executeQuery(query, [id, vendor_id]) as any[];
 
     if (products.length === 0) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
@@ -44,10 +45,11 @@ export async function GET(
 // PUT - Update a product
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const product_id = params.id;
+    const { id } = await params;
+    const product_id = id;
     const {
       vendor_id,
       name,
@@ -110,10 +112,11 @@ export async function PUT(
 // DELETE - Delete a product
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const product_id = params.id;
+    const { id } = await params;
+    const product_id = id;
     const { vendor_id } = await request.json();
 
     if (!vendor_id) {

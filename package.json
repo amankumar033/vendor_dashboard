@@ -6,7 +6,10 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "clean": "rm -rf .next",
+    "deploy": "npm run clean && npm run build",
+    "production": "NODE_ENV=production npm run start"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.6",

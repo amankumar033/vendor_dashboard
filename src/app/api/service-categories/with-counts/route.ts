@@ -39,9 +39,9 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Error fetching service categories with counts:', error);
-    console.error('Error details:', error.message);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Internal server error', details: errorMessage },
       { status: 500 }
     );
   }

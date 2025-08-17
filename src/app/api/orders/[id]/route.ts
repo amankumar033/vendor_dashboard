@@ -5,10 +5,11 @@ import nodemailer from 'nodemailer';
 // PUT - Update order status
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const order_id = await params.id;
+    const { id } = await params;
+    const order_id = id;
     const { service_status, vendor_id } = await request.json();
 
     if (!service_status || !vendor_id) {

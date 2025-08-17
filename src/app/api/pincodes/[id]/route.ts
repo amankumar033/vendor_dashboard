@@ -4,10 +4,11 @@ import { executeQuery } from '@/lib/db';
 // PUT - Update a pincode
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const pincode_id = params.id;
+    const { id } = await params;
+    const pincode_id = id;
     const { pincode, vendor_id } = await request.json();
 
     if (!pincode || !vendor_id) {
@@ -74,10 +75,11 @@ export async function PUT(
 // DELETE - Delete a pincode
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const pincode_id = params.id;
+    const { id } = await params;
+    const pincode_id = id;
     const { vendor_id } = await request.json();
 
     if (!vendor_id) {

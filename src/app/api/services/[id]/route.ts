@@ -6,9 +6,10 @@ import { executeQuery } from '@/lib/db';
 // GET - Fetch a specific service
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { searchParams } = new URL(request.url);
     const vendor_id = searchParams.get('vendor_id');
 
@@ -26,7 +27,7 @@ export async function GET(
       WHERE service_id = ? AND vendor_id = ?
     `;
 
-    const services = await executeQuery(query, [params.id, vendor_id]) as any[];
+    const services = await executeQuery(query, [id, vendor_id]) as any[];
 
     if (services.length === 0) {
       return NextResponse.json({ error: 'Service not found' }, { status: 404 });
@@ -46,10 +47,11 @@ export async function GET(
 // PUT - Update a service
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const service_id = params.id;
+    const { id } = await params;
+    const service_id = id;
     const {
       vendor_id,
       name,
@@ -115,10 +117,11 @@ export async function PUT(
 // DELETE - Delete a service
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const service_id = params.id;
+    const { id } = await params;
+    const service_id = id;
     const { vendor_id } = await request.json();
 
     if (!vendor_id) {
