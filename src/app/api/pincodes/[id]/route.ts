@@ -10,10 +10,18 @@ export async function PUT(
     const { id } = await params;
     const pincode_id = id;
     const { pincode, vendor_id } = await request.json();
+    const normalized = String(pincode || '').replace(/\D/g, '').slice(0, 6);
 
-    if (!pincode || !vendor_id) {
+    if (!normalized || !vendor_id) {
       return NextResponse.json(
         { error: 'Pincode and vendor ID are required' },
+        { status: 400 }
+      );
+    }
+
+    if (!/^\d{6}$/.test(normalized)) {
+      return NextResponse.json(
+        { error: 'Invalid pincode. Only a single 6-digit pincode is allowed' },
         { status: 400 }
       );
     }
@@ -38,10 +46,10 @@ export async function PUT(
     const duplicateQuery = `
       SELECT sp.id FROM service_pincodes sp
       JOIN services s ON sp.service_id = s.service_id
-      WHERE sp.pincode = ? AND sp.id != ? AND s.vendor_id = ?
+      WHERE sp.service_pincodes = ? AND sp.id != ? AND s.vendor_id = ?
     `;
     
-    const duplicates = await executeQuery(duplicateQuery, [pincode, pincode_id, vendor_id]) as any[];
+    const duplicates = await executeQuery(duplicateQuery, [normalized, pincode_id, vendor_id]) as any[];
     
     if (duplicates.length > 0) {
       return NextResponse.json(
@@ -52,11 +60,11 @@ export async function PUT(
 
     const updateQuery = `
       UPDATE service_pincodes 
-      SET pincode = ?
+      SET service_pincodes = ?
       WHERE id = ?
     `;
 
-    await executeQuery(updateQuery, [pincode, pincode_id]);
+    await executeQuery(updateQuery, [normalized, pincode_id]);
 
     return NextResponse.json({
       success: true,

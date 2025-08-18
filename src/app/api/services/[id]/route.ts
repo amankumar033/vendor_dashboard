@@ -87,18 +87,73 @@ export async function PUT(
       );
     }
 
+    // Normalize service_pincodes to handle multiple comma-separated pincodes
+    let normalizedPincodes = '';
+    if (typeof service_pincodes === 'string' && service_pincodes.trim().length > 0) {
+      // Split by comma, clean each pincode, and validate
+      const pincodeArray = service_pincodes.split(',')
+        .map(pin => pin.trim().replace(/\D/g, ''))
+        .filter(pin => pin.length === 6);
+      
+      // Check if all pincodes are valid 6-digit numbers
+      const invalidPincodes = pincodeArray.filter(pin => !/^\d{6}$/.test(pin));
+      if (invalidPincodes.length > 0) {
+        return NextResponse.json(
+          { error: 'Invalid pincode format. All pincodes must be 6-digit numbers' },
+          { status: 400 }
+        );
+      }
+      
+      // Store all pincodes in services table
+      normalizedPincodes = pincodeArray.join(', ');
+    }
+
     const updateQuery = `
       UPDATE services 
       SET name = ?, description = ?, service_category_id = ?, type = ?, 
-          base_price = ?, duration_minutes = ?, is_available = ?, 
-          service_pincodes = ?
+          base_price = ?, duration_minutes = ?, is_available = ?, service_pincodes = ?
       WHERE service_id = ? AND vendor_id = ?
     `;
 
     await executeQuery(updateQuery, [
       name, description, service_category_id, type, base_price,
-      duration_minutes, is_available || 1, service_pincodes || '', service_id, vendor_id
+      duration_minutes, is_available || 1, normalizedPincodes || '', service_id, vendor_id
     ]);
+
+    // Sync pincodes to service_pincodes table
+    if (typeof service_pincodes === 'string' && service_pincodes.trim().length > 0) {
+      try {
+        // First, remove all existing pincodes for this service
+        const deleteExistingQuery = `
+          DELETE FROM service_pincodes 
+          WHERE service_id = ?
+        `;
+        await executeQuery(deleteExistingQuery, [service_id]);
+        console.log(`🗑️ Removed existing pincodes for service ${service_id}`);
+
+        // Parse all pincodes (not just the limited ones) for service_pincodes table
+        const allPincodes = service_pincodes.split(',')
+          .map(pin => pin.trim().replace(/\D/g, ''))
+          .filter(pin => pin.length === 6);
+
+        // Create individual rows for each pincode
+        for (const pincode of allPincodes) {
+          const timestamp = Date.now();
+          const randomId = Math.floor(Math.random() * 1000);
+          const uniqueId = `${timestamp}${randomId}`;
+          
+          const insertPincodeQuery = `
+            INSERT INTO service_pincodes (id, service_id, service_pincodes)
+            VALUES (?, ?, ?)
+          `;
+          await executeQuery(insertPincodeQuery, [uniqueId, service_id, pincode]);
+          console.log(`✅ Added pincode ${pincode} to service ${service_id}`);
+        }
+      } catch (syncError) {
+        console.error('❌ Error syncing pincodes:', syncError);
+        // Don't fail the service update if pincode sync fails
+      }
+    }
 
     return NextResponse.json({
       success: true,

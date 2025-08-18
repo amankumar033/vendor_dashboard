@@ -144,23 +144,56 @@ export default function PincodesManagement() {
   const handleSubmit = async () => {
     try {
       setIsSubmitting(true);
+      
+      // Validate required fields
+      if (!formData.service_id) {
+        setIsSubmitting(false);
+        showError('Service Required', 'Please select a service');
+        return;
+      }
+      
+      if (!formData.pincode) {
+        setIsSubmitting(false);
+        showError('Pincode Required', 'Please enter a pincode');
+        return;
+      }
+      
+      if (!vendor?.vendor_id) {
+        setIsSubmitting(false);
+        showError('Authentication Error', 'Please log in again');
+        return;
+      }
+      
+      // Enforce single 6-digit pincode
+      const normalized = (formData.pincode || '').replace(/\D/g, '').slice(0, 6);
+      if (!/^\d{6}$/.test(normalized)) {
+        setIsSubmitting(false);
+        showError('Invalid Pincode', 'Please enter a single 6-digit pincode');
+        return;
+      }
       const url = editingPincode 
         ? `/api/pincodes/${editingPincode.id}`
         : '/api/pincodes';
       
       const method = editingPincode ? 'PUT' : 'POST';
       
+      const requestBody = {
+        service_id: formData.service_id,
+        pincode: normalized,
+        vendor_id: vendor?.vendor_id
+      };
+      
+      console.log('Submitting pincode data:', requestBody);
+      
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          service_id: parseInt(formData.service_id),
-          pincode: formData.pincode,
-          vendor_id: vendor?.vendor_id
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const data = await response.json();
+      
+      console.log('API response:', data);
       
       if (data.success) {
         setShowModal(false);
@@ -240,11 +273,7 @@ export default function PincodesManagement() {
     });
   };
 
-  const openNewPincodeModal = () => {
-    setEditingPincode(null);
-    resetForm();
-    setShowModal(true);
-  };
+
 
   if (isLoading) {
     return (
@@ -279,13 +308,7 @@ export default function PincodesManagement() {
         <span className="group-hover:font-medium transition-all duration-300">Export CSV</span>
       </button>
       
-      <button
-        onClick={openNewPincodeModal}
-        className="flex-1 sm:flex-none flex items-center justify-center px-4 py-2.5 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all duration-300 transform hover:scale-[1.03] hover:shadow-lg hover:-translate-y-0.5 active:scale-95 shadow-md"
-      >
-        <FiPlus className="h-4 w-4 sm:h-5 sm:w-5 mr-2 transition-transform duration-300 group-hover:scale-110" />
-        <span className="group-hover:font-medium transition-all duration-300">Add Pincode</span>
-      </button>
+
     </div>
   </div>
 
@@ -432,14 +455,8 @@ export default function PincodesManagement() {
             <MapPinIcon className="mx-auto h-16 w-16 sm:h-20 sm:w-20" />
           </div>
           <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-3">No pincodes yet</h3>
-          <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">Add pincodes to specify where your services are available.</p>
-          <button
-            onClick={openNewPincodeModal}
-            className="inline-flex items-center px-4 sm:px-6 py-2 sm:py-3 border border-transparent text-sm sm:text-base font-medium rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all duration-200 shadow-lg hover:shadow-xl"
-          >
-            <PlusIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-            Add Your First Pincode
-          </button>
+                          <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">Pincodes are automatically managed from your services. Update service pincodes in the Services section.</p>
+          
         </div>
       )}
  </>
@@ -552,15 +569,22 @@ export default function PincodesManagement() {
                     Pincode *
                   </label>
                   <div className="relative">
-                    <MapPinIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <MapPinIcon className="absolute left-3 top-[25px] transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                     <input
                       type="text"
+                      inputMode="numeric"
+                      pattern="\\d{6}"
+                      maxLength={6}
                       required
                       value={formData.pincode}
-                      onChange={(e) => setFormData({...formData, pincode: e.target.value})}
-                      placeholder="e.g., 110001"
-                      className="w-full pl-10 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:border-blue-300"
+                      onChange={(e) => {
+                        const digitsOnly = (e.target.value || '').replace(/\D/g, '').slice(0, 6);
+                        setFormData({ ...formData, pincode: digitsOnly });
+                      }}
+                      placeholder="Enter 6-digit pincode"
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:border-blue-300"
                     />
+                    <p className="mt-2 text-xs text-gray-500">Only one 6-digit pincode is allowed.</p>
                   </div>
                 </div>
               </div>

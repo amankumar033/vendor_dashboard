@@ -7,30 +7,47 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const vendor_id = searchParams.get('vendor_id');
 
-    if (!vendor_id) {
-      return NextResponse.json(
-        { error: 'Vendor ID is required' },
-        { status: 400 }
-      );
+    let query: string;
+    let params: any[];
+
+    if (vendor_id) {
+      // Get categories for specific vendor
+      query = `
+        SELECT 
+          sc.service_category_id,
+          sc.name,
+          sc.vendor_id,
+          sc.description,
+          sc.created_at,
+          sc.updated_at,
+          COALESCE(COUNT(s.service_id), 0) as service_count
+        FROM service_categories sc
+        LEFT JOIN services s ON sc.service_category_id = s.service_category_id AND s.vendor_id = sc.vendor_id
+        WHERE sc.vendor_id = ?
+        GROUP BY sc.service_category_id, sc.name, sc.vendor_id, sc.description, sc.created_at, sc.updated_at
+        ORDER BY sc.name ASC
+      `;
+      params = [vendor_id];
+    } else {
+      // Get all categories with counts
+      query = `
+        SELECT 
+          sc.service_category_id,
+          sc.name,
+          sc.vendor_id,
+          sc.description,
+          sc.created_at,
+          sc.updated_at,
+          COALESCE(COUNT(s.service_id), 0) as service_count
+        FROM service_categories sc
+        LEFT JOIN services s ON sc.service_category_id = s.service_category_id
+        GROUP BY sc.service_category_id, sc.name, sc.vendor_id, sc.description, sc.created_at, sc.updated_at
+        ORDER BY sc.name ASC
+      `;
+      params = [];
     }
 
-    const query = `
-      SELECT 
-        sc.service_category_id,
-        sc.name,
-        sc.vendor_id,
-        sc.description,
-        sc.created_at,
-        sc.updated_at,
-        COALESCE(COUNT(s.service_id), 0) as service_count
-      FROM service_categories sc
-      LEFT JOIN services s ON sc.service_category_id = s.service_category_id AND s.vendor_id = sc.vendor_id
-      WHERE sc.vendor_id = ?
-      GROUP BY sc.service_category_id, sc.name, sc.vendor_id, sc.description, sc.created_at, sc.updated_at
-      ORDER BY sc.name ASC
-    `;
-
-    const categories = await executeQuery(query, [vendor_id]) as any[];
+    const categories = await executeQuery(query, params) as any[];
 
     return NextResponse.json({
       success: true,

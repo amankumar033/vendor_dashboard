@@ -280,8 +280,10 @@ export default function ServicesManagement() {
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const [availabilityFilter, setAvailabilityFilter] = useState('');
+  const [categories, setCategories] = useState<any[]>([]);
+  const [categoryMap, setCategoryMap] = useState<{[key: string]: string}>({});
   const [formData, setFormData] = useState({
     vendor_id: vendor?.vendor_id || '',
     service_id: '',
@@ -307,12 +309,35 @@ const formatDate = (date: Date) => {
   useEffect(() => {
     if (vendor?.vendor_id) {
       fetchServices();
+      fetchCategories();
     }
   }, [vendor]);
+
+
 
   useEffect(() => {
     filterServices();
   }, [services, searchTerm, categoryFilter, availabilityFilter]);
+
+const fetchCategories = async () => {
+  try {
+    const response = await fetch(`/api/service-categories`);
+    const data = await response.json();
+    
+    if (data.success) {
+      setCategories(data.categories);
+      
+      // Create a mapping from category ID to category name
+      const map: {[key: string]: string} = {};
+      data.categories.forEach((category: any) => {
+        map[category.service_category_id] = category.name;
+      });
+      setCategoryMap(map);
+    }
+  } catch (err) {
+    console.error('Error fetching categories:', err);
+  }
+};
 
 const fetchServices = async () => {
   try {
@@ -353,8 +378,16 @@ const fetchServices = async () => {
     }
 
     // Category filter
-    if (categoryFilter) {
-      filtered = filtered.filter(service => service.service_category_id === categoryFilter);
+    if (categoryFilter && categoryFilter !== 'all') {
+      filtered = filtered.filter(service => {
+        if (categoryFilter === 'uncategorized') {
+          // Show services without category names
+          return !service.category_name && !categoryMap[service.service_category_id];
+        }
+        // Check category_name for matching
+        return service.category_name === categoryFilter || 
+               categoryMap[service.service_category_id] === categoryFilter;
+      });
     }
 
     // Availability filter
@@ -399,6 +432,37 @@ const fetchServices = async () => {
   const vendor_id = vendor?.vendor_id;
   try {
     setIsSubmitting(true);
+    
+    // Validate required fields
+    if (!formData.name?.trim()) {
+      setIsSubmitting(false);
+      showError('Service Name Required', 'Please enter a service name');
+      return;
+    }
+    
+    if (!formData.service_category_id) {
+      setIsSubmitting(false);
+      showError('Category Required', 'Please select a service category');
+      return;
+    }
+    
+    if (!formData.type?.trim()) {
+      setIsSubmitting(false);
+      showError('Service Type Required', 'Please enter a service type');
+      return;
+    }
+    
+    if (!formData.base_price || formData.base_price <= 0) {
+      setIsSubmitting(false);
+      showError('Price Required', 'Please enter a valid base price');
+      return;
+    }
+    
+    if (!formData.duration_minutes || parseInt(formData.duration_minutes) <= 0) {
+      setIsSubmitting(false);
+      showError('Duration Required', 'Please enter a valid duration in minutes');
+      return;
+    }
     const url = editingService 
       ? `/api/services/${editingService.service_id}`
       : '/api/services';
@@ -614,10 +678,18 @@ const fetchServices = async () => {
                 className="appearance-none bg-transparent pr-7 cursor-pointer focus:outline-none text-sm font-medium group-hover:text-blue-600 transition-colors duration-300"
               >
                 <option value="all">All Categories</option>
-                <option value="Cleaning">Cleaning</option>
-                <option value="Maintenance">Maintenance</option>
-                <option value="Repair">Repair</option>
-                <option value="Installation">Installation</option>
+                {categories.length > 0 ? (
+                  categories.map(category => (
+                    <option key={category.service_category_id} value={category.name}>
+                      {category.name}
+                    </option>
+                  ))
+                ) : (
+                  <>
+                    <option value="" disabled>No categories available</option>
+                    <option value="uncategorized">Uncategorized</option>
+                  </>
+                )}
               </select>
               <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                 <svg 
@@ -704,7 +776,7 @@ const fetchServices = async () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap transition-colors duration-300">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 transition-colors duration-300">
-                        {service.category_name || service.service_category_id}
+                        {service.category_name || categoryMap[service.service_category_id] || (service.service_category_id ? `Category ${service.service_category_id}` : 'Uncategorized')}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap transition-colors duration-300">
@@ -995,11 +1067,23 @@ const fetchServices = async () => {
                       <input
                         type="text"
                         value={formData.service_pincodes}
-                        onChange={(e) => setFormData({...formData, service_pincodes: e.target.value})}
+                        onChange={(e) => {
+                          // Allow multiple pincodes separated by commas
+                          const input = e.target.value;
+                          // Remove all non-digit and non-comma characters, then clean up
+                          const cleaned = input.replace(/[^\d,]/g, '');
+                          // Split by comma, clean each pincode, but don't filter out incomplete ones
+                          const pincodes = cleaned.split(',')
+                            .map(pin => pin.trim().replace(/\D/g, '').slice(0, 6))
+                            .join(', ');
+                          setFormData({ ...formData, service_pincodes: pincodes });
+                        }}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
-                        placeholder="e.g., 110001, 110002, 110003"
+                        placeholder="Enter pincodes separated by commas (e.g., 201301, 201302, 201303)"
                       />
-                      <p className="mt-2 text-xs text-amber-600">Comma separated pincodes where service is available</p>
+                      <p className="mt-2 text-xs text-amber-600">
+                        Enter multiple 6-digit pincodes separated by commas. Only valid 6-digit pincodes will be saved.
+                      </p>
                     </div>
                   </div>
                 </div>

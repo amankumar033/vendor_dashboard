@@ -98,6 +98,7 @@ export default function ServiceRequestsManagement() {
           request.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
           request.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
           metadata.service_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          metadata.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           metadata.user_name?.toLowerCase().includes(searchTerm.toLowerCase())
         );
       });
@@ -390,14 +391,14 @@ export default function ServiceRequestsManagement() {
                         <div className="flex items-center">
                           <UserIcon className="w-4 h-4 text-gray-400 mr-2" />
                           <span className="text-sm text-gray-900">
-                            {metadata.user_name || 'Unknown Customer'}
+                            {metadata.customer_name || metadata.user_name || 'Unknown Customer'}
                           </span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm text-gray-900">
                           <div className="font-medium">{metadata.service_category} - {metadata.service_type}</div>
-                          <div className="text-gray-500">₹{metadata.base_price} • {metadata.duration_minutes} min</div>
+                          <div className="text-gray-500">₹{metadata.final_price || metadata.base_price} • {metadata.service_duration || metadata.duration_minutes} min</div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -454,16 +455,19 @@ export default function ServiceRequestsManagement() {
                               </button>
                             </>
                           )}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeRequest(request.id);
-                            }}
-                            className="text-gray-600 hover:text-gray-900 p-1 rounded hover:bg-gray-50 transition-colors"
-                            title="Remove Request"
-                          >
-                            <TrashIcon className="h-4 w-4" />
-                          </button>
+                          {/* Remove button - only show for non-service requests */}
+                          {request.type !== 'service_order_created' && request.type !== 'service_order_placed' && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeRequest(request.id);
+                              }}
+                              className="text-gray-600 hover:text-gray-900 p-1 rounded hover:bg-gray-50 transition-colors"
+                              title="Remove Request"
+                            >
+                              <TrashIcon className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -540,7 +544,7 @@ export default function ServiceRequestsManagement() {
                           <UserIcon className="w-4 h-4 text-gray-600 mr-2" />
                           <div>
                             <div className="font-semibold text-sm text-gray-700">Customer</div>
-                            <div className="text-sm text-gray-600">{metadata.user_name || 'Unknown Customer'}</div>
+                            <div className="text-sm text-gray-600">{metadata.customer_name || metadata.user_name || 'Unknown Customer'}</div>
                           </div>
                         </div>
                       </div>
@@ -551,7 +555,7 @@ export default function ServiceRequestsManagement() {
                           <div>
                             <div className="font-semibold text-sm text-gray-700">Price & Duration</div>
                             <div className="text-sm text-gray-600">
-                              ₹{metadata.base_price || '0'} • {metadata.duration_minutes || '0'} minutes
+                              ₹{metadata.final_price || metadata.base_price || '0'} • {metadata.service_duration || metadata.duration_minutes || '0'} minutes
                             </div>
                           </div>
                         </div>
@@ -618,15 +622,18 @@ export default function ServiceRequestsManagement() {
                     </div>
                   )}
 
-                  <div className="flex flex-col space-y-2 pt-4 border-t border-gray-200">
-                    <button
-                      onClick={() => removeRequest(selectedRequest.id)}
-                      className="flex items-center justify-center px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 text-white font-semibold rounded-lg hover:from-gray-700 hover:to-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-all duration-300 ease-out transform hover:scale-105 hover:shadow-lg text-sm"
-                    >
-                      <TrashIcon className="w-4 h-4 mr-2" />
-                      Remove Request
-                    </button>
-                  </div>
+                  {/* Remove button - only show for non-service requests */}
+                  {selectedRequest.type !== 'service_order_created' && selectedRequest.type !== 'service_order_placed' && (
+                    <div className="flex flex-col space-y-2 pt-4 border-t border-gray-200">
+                      <button
+                        onClick={() => removeRequest(selectedRequest.id)}
+                        className="flex items-center justify-center px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 text-white font-semibold rounded-lg hover:from-gray-700 hover:to-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-all duration-300 ease-out transform hover:scale-105 hover:shadow-lg text-sm"
+                      >
+                        <TrashIcon className="w-4 h-4 mr-2" />
+                        Remove Request
+                      </button>
+                    </div>
+                  )}
                 </>
               );
             })()}

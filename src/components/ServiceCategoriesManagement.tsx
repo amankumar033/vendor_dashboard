@@ -50,7 +50,7 @@ export default function ServiceCategoriesManagement() {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await fetch(`/api/service-categories/with-counts?vendor_id=${vendor?.vendor_id}`);
+      const response = await fetch(`/api/service-categories/with-counts`);
       const data = await response.json();
       
       if (data.success) {

@@ -31,16 +31,15 @@ export default function CategoryDropdown({
   const [isLoading, setIsLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
 
+  // Fetch categories when component mounts
   useEffect(() => {
-    if (vendor?.vendor_id) {
-      fetchCategories();
-    }
-  }, [vendor]);
+    fetchCategories();
+  }, []);
 
   const fetchCategories = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/service-categories?vendor_id=${vendor?.vendor_id}`);
+      const response = await fetch(`/api/service-categories`);
       const data = await response.json();
       
       if (data.success) {
@@ -54,7 +53,7 @@ export default function CategoryDropdown({
   };
 
   const selectedCategory = categories.find(cat => cat.service_category_id === value);
-
+  
   return (
     <div className={`relative ${className}`}>
       <button
@@ -71,6 +70,7 @@ export default function CategoryDropdown({
           </span>
           <ChevronDownIcon className="h-4 w-4 text-gray-400" />
         </div>
+
       </button>
 
       {isOpen && !isLoading && (

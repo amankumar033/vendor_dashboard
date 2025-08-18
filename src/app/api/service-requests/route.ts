@@ -184,21 +184,29 @@ export async function POST(request: NextRequest) {
     try {
       const { sendServiceOrderAcceptedEmail, sendServiceOrderRejectedEmail } = await import('@/lib/emailService');
       
+      // Get customer email with multiple fallbacks
+      const customerEmail = metadata.customer_email || metadata.user_email || metadata.email;
+      
+      if (!customerEmail) {
+        console.log('⚠️ No customer email found in metadata:', metadata);
+        throw new Error('No customer email available');
+      }
+      
       if (action === 'accept') {
-        await sendServiceOrderAcceptedEmail(metadata.user_email, {
-          customerName: metadata.user_name,
+        await sendServiceOrderAcceptedEmail(customerEmail, {
+          customerName: metadata.customer_name || metadata.user_name,
           serviceName: metadata.service_name,
           serviceCategory: metadata.service_category,
           serviceType: metadata.service_type,
-          basePrice: metadata.final_price,
-          durationMinutes: metadata.service_duration || 'N/A',
+          basePrice: metadata.final_price || metadata.base_price,
+          durationMinutes: metadata.service_duration || metadata.duration_minutes || 'N/A',
           serviceDate: metadata.service_date,
           serviceTime: metadata.service_time,
           serviceAddress: metadata.service_address
         });
       } else {
-        await sendServiceOrderRejectedEmail(metadata.user_email, {
-          customerName: metadata.user_name,
+        await sendServiceOrderRejectedEmail(customerEmail, {
+          customerName: metadata.customer_name || metadata.user_name,
           serviceName: metadata.service_name,
           serviceCategory: metadata.service_category,
           serviceType: metadata.service_type,

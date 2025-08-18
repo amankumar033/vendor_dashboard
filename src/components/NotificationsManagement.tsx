@@ -19,20 +19,20 @@ interface Notification {
   title: string;
   message: string;
   description?: string;
-  for_admin: boolean;
-  for_dealer: boolean;
-  for_user: boolean;
-  for_vendor: boolean;
+  for_admin: number;
+  for_dealer: number;
+  for_user: number;
+  for_vendor: number;
   product_id?: number;
   order_id?: number;
   user_id?: number;
-  vendor_id?: number;
+  vendor_id?: string;
   dealer_id?: number;
-  is_read: boolean;
-  is_delivered: boolean;
-  whatsapp_delivered: boolean;
-  email_delivered: boolean;
-  sms_delivered: boolean;
+  is_read: number;
+  is_delivered: number;
+  whatsapp_delivered: number;
+  email_delivered: number;
+  sms_delivered: number;
   metadata?: any;
   created_at: string;
   updated_at: string;
@@ -85,25 +85,39 @@ export default function NotificationsManagement() {
   }, [notifications, searchTerm, statusFilter, typeFilter]);
 
   const fetchNotifications = async () => {
-    if (!vendor?.vendor_id) return;
+    if (!vendor?.vendor_id) {
+      console.log('No vendor ID available for fetching notifications');
+      return;
+    }
 
     try {
+      console.log('🔄 Fetching notifications for vendor:', vendor.vendor_id);
+      setIsLoading(true);
+      
       const response = await fetch(`/api/notifications?vendor_id=${vendor.vendor_id}&limit=100`);
+      console.log('📡 API Response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch notifications');
+        throw new Error(`Failed to fetch notifications: ${response.status}`);
       }
+      
       const data = await response.json();
+      console.log('📦 API Response data:', data);
       
       // Handle the API response structure
       if (data.success && data.notifications) {
         setNotifications(data.notifications);
+        console.log('✅ Set notifications from data.notifications:', data.notifications.length);
       } else {
         setNotifications(data);
+        console.log('✅ Set notifications from data:', data.length);
       }
       setError('');
+      showSuccess('Notifications refreshed successfully');
     } catch (err) {
-      console.error('Error fetching notifications:', err);
+      console.error('❌ Error fetching notifications:', err);
       setError('Failed to load notifications');
+      showError('Failed to refresh notifications');
     } finally {
       setIsLoading(false);
     }
@@ -121,8 +135,11 @@ export default function NotificationsManagement() {
     }
 
     if (statusFilter) {
-      const isRead = statusFilter === 'read';
-      filtered = filtered.filter(notification => notification.is_read === isRead);
+      if (statusFilter === 'read') {
+        filtered = filtered.filter(notification => notification.is_read === 1);
+      } else if (statusFilter === 'unread') {
+        filtered = filtered.filter(notification => notification.is_read === 0);
+      }
     }
 
     if (typeFilter) {
@@ -160,7 +177,7 @@ export default function NotificationsManagement() {
         setNotifications(prev => 
         prev.map(notification => 
           notification.id === notificationId 
-            ? { ...notification, is_read: true }
+            ? { ...notification, is_read: 1 }
             : notification
           )
         );
@@ -219,7 +236,7 @@ export default function NotificationsManagement() {
                 title: result.title,
                 message: result.message,
                 description: result.description,
-                is_read: true
+                is_read: 1
               }
             : notification
         )
@@ -262,6 +279,8 @@ export default function NotificationsManagement() {
   };
 
   const getNotificationIcon = (type: string) => {
+    if (!type) return '📢';
+    
     switch (type) {
       case 'service_order_created':
         return '📋';
@@ -393,12 +412,21 @@ export default function NotificationsManagement() {
           </div>
           <button
             onClick={fetchNotifications}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            disabled={isLoading}
+            className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
+              isLoading 
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : 'bg-blue-600 hover:bg-blue-700'
+            } text-white`}
           >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Refresh
+            {isLoading ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+            ) : (
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            )}
+            {isLoading ? 'Refreshing...' : 'Refresh'}
           </button>
         </div>
 
@@ -418,7 +446,7 @@ export default function NotificationsManagement() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-red-600">Unread</p>
-                <p className="text-2xl font-bold text-red-900">{notifications.filter(n => !n.is_read).length}</p>
+                <p className="text-2xl font-bold text-red-900">{notifications.filter(n => n.is_read === 0).length}</p>
               </div>
               <div className="h-8 w-8 bg-red-100 rounded-full flex items-center justify-center">
                 <span className="text-red-600 font-bold">!</span>
@@ -430,7 +458,7 @@ export default function NotificationsManagement() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-green-600">Read</p>
-                <p className="text-2xl font-bold text-green-900">{notifications.filter(n => n.is_read).length}</p>
+                <p className="text-2xl font-bold text-green-900">{notifications.filter(n => n.is_read === 1).length}</p>
               </div>
               <svg className="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -513,7 +541,7 @@ export default function NotificationsManagement() {
             <div
               key={notification.id}
                 className={`p-6 hover:bg-gray-50 transition-all duration-200 ${
-                  !notification.is_read ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+                  notification.is_read === 0 ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
                 }`}
             >
               {/* Initial View */}
@@ -554,33 +582,36 @@ export default function NotificationsManagement() {
                   </div>
                 </div>
                 
-                      {/* Action Buttons */}
-                      <div className="flex items-center space-x-2 ml-4">
-                        {!notification.is_read && notification.type !== 'service_order_created' && notification.type !== 'service_order_placed' && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              markAsRead(notification.id);
-                            }}
-                            disabled={isProcessing === `read-${notification.id}`}
-                            className="text-green-600 hover:text-green-800 disabled:opacity-50 text-sm font-medium"
-                          >
-                            Mark as Read
-                          </button>
-                        )}
-                        
-                  <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeNotification(notification.id);
-                          }}
-                    disabled={isProcessing === `remove-${notification.id}`}
-                          className="text-red-600 hover:text-red-800 disabled:opacity-50 p-1 rounded"
-                    title="Remove Notification"
-                  >
-                    <TrashIcon className="h-4 w-4" />
-                  </button>
-                </div>
+                                              {/* Action Buttons */}
+                        <div className="flex items-center space-x-2 ml-4">
+                          {notification.is_read === 0 && notification.type !== 'service_order_created' && notification.type !== 'service_order_placed' && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                markAsRead(notification.id);
+                              }}
+                              disabled={isProcessing === `read-${notification.id}`}
+                              className="text-green-600 hover:text-green-800 disabled:opacity-50 text-sm font-medium"
+                            >
+                              Mark as Read
+                            </button>
+                          )}
+                          
+                          {/* Remove button - hidden for service requests */}
+                          {notification.type !== 'service_order_created' && notification.type !== 'service_order_placed' && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeNotification(notification.id);
+                              }}
+                              disabled={isProcessing === `remove-${notification.id}`}
+                              className="text-red-600 hover:text-red-800 disabled:opacity-50 p-1 rounded"
+                              title="Remove Notification"
+                            >
+                              <TrashIcon className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
               </div>
 
                     {/* Expanded View - Full Data */}
@@ -721,14 +752,14 @@ export default function NotificationsManagement() {
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3">
                               <span className="text-sm font-medium text-gray-900">
-                                {getNotificationIcon(notification.type)} {notification.type.replace('_', ' ').toUpperCase()}
+                                {getNotificationIcon(notification.type || '')} {notification.type ? notification.type.replace('_', ' ').toUpperCase() : 'UNKNOWN'}
                               </span>
                             </div>
                     
                             {/* Action Buttons for Service Requests */}
-                            {(notification.type === 'service_order_created' || notification.type === 'service_order_placed') && !notification.is_read && (
+                            {(notification.type === 'service_order_created' || notification.type === 'service_order_placed') && (
                               <div className="flex items-center space-x-3">
-                        <button
+                                <button
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleServiceRequestAction(notification.id, 'accept');
@@ -751,9 +782,9 @@ export default function NotificationsManagement() {
                                       Accept
                                     </>
                                   )}
-                        </button>
+                                </button>
                                 
-                      <button
+                                <button
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleServiceRequestAction(notification.id, 'reject');
@@ -776,8 +807,31 @@ export default function NotificationsManagement() {
                                       Reject
                                     </>
                                   )}
-                      </button>
-                    </div>
+                                </button>
+                              </div>
+                            )}
+                            
+                            {/* Status Display for Processed Service Requests */}
+                            {(notification.type === 'service_order_accepted' || notification.type === 'service_order_rejected') && (
+                              <div className="flex items-center space-x-2">
+                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                                  notification.type === 'service_order_accepted' 
+                                    ? 'bg-green-100 text-green-800' 
+                                    : 'bg-red-100 text-red-800'
+                                }`}>
+                                  {notification.type === 'service_order_accepted' ? (
+                                    <>
+                                      <CheckIcon className="h-4 w-4 mr-1" />
+                                      Accepted
+                                    </>
+                                  ) : (
+                                    <>
+                                      <XMarkIcon className="h-4 w-4 mr-1" />
+                                      Rejected
+                                    </>
+                                  )}
+                                </span>
+                              </div>
                             )}
                   </div>
                         </div>

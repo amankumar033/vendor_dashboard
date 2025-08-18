@@ -15,11 +15,11 @@ export async function GET(request: NextRequest) {
     }
 
     const query = `
-      SELECT sp.id, sp.service_id, sp.pincode, s.name as service_name, s.vendor_id
+      SELECT sp.id, sp.service_id, sp.service_pincodes as pincode, s.name as service_name, s.vendor_id
       FROM service_pincodes sp
       JOIN services s ON sp.service_id = s.service_id
       WHERE s.vendor_id = ?
-      ORDER BY s.name, sp.pincode
+      ORDER BY s.name, sp.service_pincodes
     `;
 
     const pincodes = await executeQuery(query, [vendor_id]) as any[];
@@ -42,11 +42,19 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const { service_id, pincode, vendor_id } = await request.json();
+    const normalized = String(pincode || '').replace(/\D/g, '').slice(0, 6);
 
     // Validate required fields
-    if (!service_id || !pincode || !vendor_id) {
+    if (!service_id || !normalized || !vendor_id) {
       return NextResponse.json(
         { error: 'Service ID, pincode, and vendor ID are required' },
+        { status: 400 }
+      );
+    }
+
+    if (!/^\d{6}$/.test(normalized)) {
+      return NextResponse.json(
+        { error: 'Invalid pincode. Only a single 6-digit pincode is allowed' },
         { status: 400 }
       );
     }
@@ -69,10 +77,10 @@ export async function POST(request: NextRequest) {
     // Check if pincode already exists for this service
     const checkQuery = `
       SELECT id FROM service_pincodes 
-      WHERE service_id = ? AND pincode = ?
+      WHERE service_id = ? AND service_pincodes = ?
     `;
     
-    const existing = await executeQuery(checkQuery, [service_id, pincode]) as any[];
+    const existing = await executeQuery(checkQuery, [service_id, normalized]) as any[];
     
     if (existing.length > 0) {
       return NextResponse.json(
@@ -80,13 +88,35 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+    
+    // Also check if this pincode exists for any other service by the same vendor
+    const vendorPincodeCheckQuery = `
+      SELECT sp.id, s.name as service_name 
+      FROM service_pincodes sp
+      JOIN services s ON sp.service_id = s.service_id
+      WHERE sp.service_pincodes = ? AND s.vendor_id = ? AND sp.service_id != ?
+    `;
+    
+    const vendorExisting = await executeQuery(vendorPincodeCheckQuery, [normalized, vendor_id, service_id]) as any[];
+    
+    if (vendorExisting.length > 0) {
+      return NextResponse.json(
+        { error: `Pincode already exists for service: ${vendorExisting[0].service_name}` },
+        { status: 400 }
+      );
+    }
 
+    // Generate a unique ID for the pincode
+    const timestamp = Date.now();
+    const randomId = Math.floor(Math.random() * 1000);
+    const uniqueId = `${timestamp}${randomId}`;
+    
     const insertQuery = `
-      INSERT INTO service_pincodes (service_id, pincode)
-      VALUES (?, ?)
+      INSERT INTO service_pincodes (id, service_id, service_pincodes)
+      VALUES (?, ?, ?)
     `;
 
-    const result = await executeQuery(insertQuery, [service_id, pincode]) as any;
+    const result = await executeQuery(insertQuery, [uniqueId, service_id, normalized]) as any;
 
     return NextResponse.json({
       success: true,

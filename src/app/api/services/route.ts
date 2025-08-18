@@ -19,8 +19,7 @@ export async function GET(request: NextRequest) {
              sc.name as category_name, s.type, s.base_price, s.duration_minutes, 
              s.is_available, s.service_pincodes, s.created_at, s.updated_at
       FROM services s
-      LEFT JOIN service_categories sc ON s.service_category_id = sc.service_category_id 
-        AND s.vendor_id = sc.vendor_id
+      LEFT JOIN service_categories sc ON s.service_category_id = sc.service_category_id
       WHERE s.vendor_id = ?
       ORDER BY s.created_at DESC
     `;
@@ -62,6 +61,27 @@ export async function POST(request: NextRequest) {
         { error: 'All required fields must be provided' },
         { status: 400 }
       );
+    }
+
+    // Validate and normalize service_pincodes for multiple comma-separated pincodes
+    let normalizedPincodes = '';
+    if (typeof service_pincodes === 'string' && service_pincodes.trim().length > 0) {
+      // Split by comma, clean each pincode, and validate
+      const pincodeArray = service_pincodes.split(',')
+        .map(pin => pin.trim().replace(/\D/g, ''))
+        .filter(pin => pin.length === 6);
+      
+      // Check if all pincodes are valid 6-digit numbers
+      const invalidPincodes = pincodeArray.filter(pin => !/^\d{6}$/.test(pin));
+      if (invalidPincodes.length > 0) {
+        return NextResponse.json(
+          { error: 'Invalid pincode format. All pincodes must be 6-digit numbers' },
+          { status: 400 }
+        );
+      }
+      
+      // Store all pincodes in services table
+      normalizedPincodes = pincodeArray.join(', ');
     }
     // Begin transactional, vendor-scoped ID generation
     const connection = await createConnection();
@@ -162,7 +182,7 @@ export async function POST(request: NextRequest) {
         base_price,
         duration_minutes,
         is_available || 0,
-        service_pincodes,
+        normalizedPincodes,
       ];
       await connection.execute(insertQuery, params);
 
@@ -174,6 +194,33 @@ export async function POST(request: NextRequest) {
 
       await connection.commit();
       inTransaction = false;
+
+      // Sync pincodes to service_pincodes table
+      if (typeof service_pincodes === 'string' && service_pincodes.trim().length > 0) {
+        try {
+          // Parse all pincodes (not just the limited ones) for service_pincodes table
+          const allPincodes = service_pincodes.split(',')
+            .map(pin => pin.trim().replace(/\D/g, ''))
+            .filter(pin => pin.length === 6);
+
+          // Create individual rows for each pincode
+          for (const pincode of allPincodes) {
+            const timestamp = Date.now();
+            const randomId = Math.floor(Math.random() * 1000);
+            const uniqueId = `${timestamp}${randomId}`;
+            
+            const insertPincodeQuery = `
+              INSERT INTO service_pincodes (id, service_id, service_pincodes)
+              VALUES (?, ?, ?)
+            `;
+            await executeQuery(insertPincodeQuery, [uniqueId, service_id, pincode]);
+            console.log(`✅ Added pincode ${pincode} to new service ${service_id}`);
+          }
+        } catch (syncError) {
+          console.error('❌ Error syncing pincodes for new service:', syncError);
+          // Don't fail the service creation if pincode sync fails
+        }
+      }
 
       // Create notification for admin when service is created
       // Get current India/Delhi time
@@ -216,7 +263,8 @@ export async function POST(request: NextRequest) {
           base_price: base_price,
           duration_minutes: duration_minutes,
           is_available: is_available || 0,
-          service_pincodes: service_pincodes || '',
+          service_pincodes: normalizedPincodes || '',
+
           created_at: currentTimestamp,
           updated_at: currentTimestamp
         })
