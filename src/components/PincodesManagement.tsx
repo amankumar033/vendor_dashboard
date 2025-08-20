@@ -636,7 +636,13 @@ export default function PincodesManagement() {
                 <span>{editingPincode ? 'Updating...' : 'Creating...'}</span>
               </>
             ) : (
-              <span>{editingPincode ? 'Update Service Pincode' : 'Create Service Pincode'}</span>
+              <span>
+                {editingPincode ? 'Update Service Pincode' : (
+                  <>
+                    Create <span className="hidden sm:inline">Service Pincode</span>
+                  </>
+                )}
+              </span>
             )}
           </button>
         </div>

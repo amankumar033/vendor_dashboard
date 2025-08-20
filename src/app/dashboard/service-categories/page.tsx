@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default function ServiceCategoriesPage() {
   return (
     <DashboardLayout>
-      <div className="p-6">
+      <div className="p-0 sm:p-6">
         <ServiceCategoriesManagement />
       </div>
     </DashboardLayout>

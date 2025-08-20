@@ -879,7 +879,7 @@ const fetchServices = async () => {
             </div>
             
             {/* Main Content */}
-            <div className="flex-1 px-6 py-8">
+            <div className="flex-1 px-2 sm:px-6 py-8">
               {/* Basic Information Section */}
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-blue-200 rounded-t-lg mb-6">
                 <div className="flex items-center space-x-3">
@@ -1096,7 +1096,7 @@ const fetchServices = async () => {
             <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
               <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                 <div className="text-sm text-gray-600 order-2 sm:order-1">
-                  {editingService ? `Last updated: ${formatDate(new Date())}` : 'Creating new service'}
+                  {editingService ? `Last updated: ${formatDate(new Date())}` : <span className="hidden sm:inline">Creating new service</span>}
                 </div>
                 <div className="flex flex-row space-x-3 order-1 sm:order-2 w-full sm:w-auto">
                   <button
@@ -1118,7 +1118,13 @@ const fetchServices = async () => {
                     ) : (
                       <>
                         <CheckIcon className="w-4 h-4" />
-                        <span>{editingService ? 'Update Service' : 'Create Service'}</span>
+                        <span>
+                          {editingService ? 'Update Service' : (
+                            <>
+                              Create <span className="hidden sm:inline">Service</span>
+                            </>
+                          )}
+                        </span>
                       </>
                     )}
                   </button>

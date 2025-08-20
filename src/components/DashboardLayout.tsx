@@ -247,7 +247,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
    
       {/* Main Content */}
       <div className="lg:pl-80" style={{ paddingTop: '72px' }}>
-        <main className="p-4 sm:p-6">
+        <main className="px-2 py-4 sm:p-6">
           {children}
         </main>
       </div>
