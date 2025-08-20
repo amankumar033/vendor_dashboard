@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { PlusIcon, PencilIcon, TrashIcon, EyeIcon, MagnifyingGlassIcon, FunnelIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import RichTextEditor from './RichTextEditor';
 import FormCard from './FormCard';
+import CustomDropdown from './CustomDropdown';
 import { useToast } from './ToastContainer';
 import CategoryDropdown from './CategoryDropdown';
 import {
@@ -663,45 +664,34 @@ const fetchServices = async () => {
                 placeholder="Search by name, category, or type..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 text-gray-500 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:border-blue-300 focus:shadow-lg"
+                className="w-full pl-10 pr-4 h-10 text-gray-500 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:border-blue-300 focus:shadow-lg"
               />
             </div>
           </div>
 
           {/* Filter - Right side */}
           <div className="relative group sm:w-auto sm:flex-shrink-0">
-            <div className="flex items-center px-3 py-[11px] border border-gray-200 rounded-lg focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent text-gray-900 bg-white hover:border-blue-300 transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-100">
-              <FiFilter className="mr-2 text-gray-500 group-hover:text-blue-600 transition-all duration-300 group-hover:scale-110" />
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="appearance-none bg-transparent pr-7 cursor-pointer focus:outline-none text-sm font-medium group-hover:text-blue-600 transition-colors duration-300"
-              >
-                <option value="all">All Categories</option>
-                {categories.length > 0 ? (
-                  categories.map(category => (
-                    <option key={category.service_category_id} value={category.name}>
-                      {category.name}
-                    </option>
-                  ))
-                ) : (
-                  <>
-                    <option value="" disabled>No categories available</option>
-                    <option value="uncategorized">Uncategorized</option>
-                  </>
-                )}
-              </select>
-              <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                <svg 
-                  className="w-4 h-4 text-gray-400 group-hover:text-blue-600 transition-all duration-300 group-hover:rotate-180 group-hover:scale-110" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
+            <CustomDropdown
+              options={[
+                { value: 'all', label: 'All Categories' },
+                ...(categories.length > 0 
+                  ? categories.map(category => ({
+                      value: category.name,
+                      label: category.name
+                    }))
+                  : [
+                      { value: '', label: 'No categories available', disabled: true },
+                      { value: 'uncategorized', label: 'Uncategorized' }
+                    ]
+              )
+              ]}
+              value={categoryFilter}
+              onChange={(value) => setCategoryFilter(value as string)}
+              placeholder="All Categories"
+              maxHeight="max-h-48"
+              icon={<FiFilter className="h-5 w-5" />}
+              className="h-10"
+            />
             <div className="absolute -bottom-1 left-1/2 w-4/5 h-0.5 bg-blue-100 transform -translate-x-1/2 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-center group-hover:bg-blue-200"></div>
           </div>
         </div>
@@ -962,7 +952,7 @@ const fetchServices = async () => {
                   </label>
                   <CategoryDropdown
                     value={formData.service_category_id}
-                    onChange={(value) => setFormData({...formData, service_category_id: value})}
+                    onChange={(value) => setFormData({...formData, service_category_id: value.toString()})}
                     required={true}
                     placeholder="Select a category"
                     className="w-full"
@@ -1068,15 +1058,27 @@ const fetchServices = async () => {
                         type="text"
                         value={formData.service_pincodes}
                         onChange={(e) => {
-                          // Allow multiple pincodes separated by commas
                           const input = e.target.value;
-                          // Remove all non-digit and non-comma characters, then clean up
-                          const cleaned = input.replace(/[^\d,]/g, '');
-                          // Split by comma, clean each pincode, but don't filter out incomplete ones
-                          const pincodes = cleaned.split(',')
+                          const cursorPosition = e.target.selectionStart || 0;
+                          
+                          // Only allow digits, commas, and spaces
+                          const cleaned = input.replace(/[^\d,\s]/g, '');
+                          
+                          // Process the cleaned input
+                          const pincodes = cleaned
+                            .split(',')
                             .map(pin => pin.trim().replace(/\D/g, '').slice(0, 6))
+                            .filter(pin => pin.length > 0) // Remove empty pincodes
                             .join(', ');
+                          
                           setFormData({ ...formData, service_pincodes: pincodes });
+                          
+                          // Restore cursor position after state update
+                          setTimeout(() => {
+                            const inputElement = e.target;
+                            const newPosition = Math.min(cursorPosition, pincodes.length);
+                            inputElement.setSelectionRange(newPosition, newPosition);
+                          }, 0);
                         }}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
                         placeholder="Enter pincodes separated by commas (e.g., 201301, 201302, 201303)"
@@ -1092,21 +1094,21 @@ const fetchServices = async () => {
 
             {/* Footer */}
             <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
-              <div className="flex justify-between items-center">
-                <div className="text-sm text-gray-600">
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div className="text-sm text-gray-600 order-2 sm:order-1">
                   {editingService ? `Last updated: ${formatDate(new Date())}` : 'Creating new service'}
                 </div>
-                <div className="flex space-x-3">
+                <div className="flex flex-row space-x-3 order-1 sm:order-2 w-full sm:w-auto">
                   <button
                     onClick={() => setShowModal(false)}
-                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors duration-200"
+                    className="flex-1 sm:flex-none px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors duration-200"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSubmit}
                     disabled={isSubmitting}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center space-x-2"
+                    className="flex-1 sm:flex-none px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center space-x-2"
                   >
                     {isSubmitting ? (
                       <>

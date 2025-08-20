@@ -635,7 +635,7 @@ export default function DashboardOverview() {
     </div>
     <h3 className="text-base sm:text-lg font-bold text-gray-900 text-center mb-2
         transition-colors duration-300 group-hover:text-purple-700">
-      Update Profile
+     View Profile
     </h3>
     <p className="text-xs sm:text-sm text-gray-600 text-center mb-3 sm:mb-4
         transition-colors duration-400 group-hover:text-gray-700">
@@ -647,7 +647,7 @@ export default function DashboardOverview() {
           transition-all duration-300 ease-out hover:shadow-md hover:-translate-y-0.5
           text-sm sm:text-base"
     >
-      Edit Profile
+     View Profile
     </button>
   </div>
 </div>

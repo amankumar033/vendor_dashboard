@@ -55,36 +55,27 @@ const toastStyles = {
 };
 
 export default function Toast({ id, type, title, message, duration = 5000, onClose }: ToastProps) {
-  const [isVisible, setIsVisible] = useState(false);
   const styles = toastStyles[type];
   const IconComponent = styles.icon;
 
   useEffect(() => {
-    // Animate in
-    const timer = setTimeout(() => setIsVisible(true), 100);
-    
-    // Auto dismiss
+    // Auto dismiss without animation
     const dismissTimer = setTimeout(() => {
-      setIsVisible(false);
-      setTimeout(() => onClose(id), 300);
+      onClose(id);
     }, duration);
 
     return () => {
-      clearTimeout(timer);
       clearTimeout(dismissTimer);
     };
   }, [id, duration, onClose]);
 
   const handleClose = () => {
-    setIsVisible(false);
-    setTimeout(() => onClose(id), 300);
+    onClose(id);
   };
 
   return (
     <div
       className={`
-        transform transition-all duration-300 ease-in-out
-        ${isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}
         ${styles.bg} ${styles.border} border-l-4 rounded-lg shadow-lg p-4 mb-3
         flex items-start space-x-3 min-w-80 max-w-md
       `}

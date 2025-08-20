@@ -15,15 +15,17 @@ export async function GET(request: NextRequest) {
     }
 
     const query = `
-      SELECT service_order_id, user_id, service_id, vendor_id, service_name,
-             service_description, service_category, service_type, base_price,
-             final_price, duration_minutes, booking_date, service_date,
-             service_time, service_status, service_pincode, service_address,
-             additional_notes, payment_method, payment_status, transaction_id,
-             was_available
-      FROM service_orders 
-      WHERE vendor_id = ?
-      ORDER BY booking_date DESC
+      SELECT so.service_order_id, so.user_id, so.service_id, so.vendor_id, so.service_name,
+             so.service_description, so.service_category, so.service_type, so.base_price,
+             so.final_price, so.duration_minutes, so.booking_date, so.service_date,
+             so.service_time, so.service_status, so.service_pincode, so.service_address,
+             so.additional_notes, so.payment_method, so.payment_status, so.transaction_id,
+             so.was_available,
+             u.full_name as customer_name, u.email as customer_email, u.phone as customer_phone
+      FROM service_orders so
+      LEFT JOIN users u ON so.user_id = u.user_id
+      WHERE so.vendor_id = ?
+      ORDER BY so.booking_date DESC
     `;
 
     const serviceOrders = await executeQuery(query, [vendor_id]) as any[];

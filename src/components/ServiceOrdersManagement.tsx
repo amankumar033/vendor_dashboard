@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { PlusIcon, PencilIcon, TrashIcon, EyeIcon, CheckIcon, XMarkIcon, MagnifyingGlassIcon, FunnelIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import RichTextEditor from './RichTextEditor';
 import FormCard from './FormCard';
+import CustomDropdown from './CustomDropdown';
 import { useToast } from './ToastContainer';
 import { 
   FiSearch, 
@@ -51,6 +52,9 @@ interface ServiceOrder {
   payment_status: string;
   transaction_id: string;
   was_available: number;
+  customer_name?: string;
+  customer_email?: string;
+  customer_phone?: string;
 }
 
 export default function ServiceOrdersManagement() {
@@ -351,7 +355,7 @@ function formatDate(input: string | Date, formatString = 'MM/dd/yyyy'): string {
         placeholder="Search orders..."
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
-        className="w-full pl-10 pr-4 py-2.5 text-gray-700 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent hover:border-indigo-300 transition-all duration-300 hover:shadow-sm"
+        className="w-full pl-10 pr-4 h-10 text-gray-700 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent hover:border-indigo-300 transition-all duration-300 hover:shadow-sm"
       />
       {searchTerm && (
         <button 
@@ -365,45 +369,37 @@ function formatDate(input: string | Date, formatString = 'MM/dd/yyyy'): string {
 
     {/* Status Filter */}
     <div className="relative group transition-all duration-300 hover:-translate-y-0.5">
-      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-        <FiClock className="h-5 w-5 text-gray-400 group-hover:text-indigo-500 transition-colors duration-300" />
-      </div>
-      <select
+      <CustomDropdown
+        options={[
+          { value: '', label: 'All Statuses' },
+          { value: 'pending', label: 'Pending' },
+          { value: 'scheduled', label: 'Scheduled' },
+          { value: 'cancelled', label: 'Cancelled' },
+          { value: 'rejected', label: 'Rejected' },
+          { value: 'refunded', label: 'Refunded' }
+        ]}
         value={statusFilter}
-        onChange={(e) => setStatusFilter(e.target.value)}
-        className="w-full pl-10 pr-8 py-2.5 text-gray-700 border border-gray-200 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent hover:border-indigo-300 bg-white cursor-pointer transition-all duration-300 hover:shadow-sm"
-      >
-        <option value="">All Statuses</option>
-        <option value="pending">Pending</option>
-        <option value="scheduled">Scheduled</option>
-        <option value="cancelled">Cancelled</option>
-        <option value="rejected">Rejected</option>
-        <option value="refunded">Refunded</option>
-      </select>
-      <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-        <FiChevronDown className="h-5 w-5 text-gray-400 group-hover:text-indigo-500 transition-colors duration-300" />
-      </div>
+        onChange={(value) => setStatusFilter(value as string)}
+        maxHeight="max-h-48"
+        icon={<FiClock className="h-5 w-5" />}
+      />
     </div>
 
     {/* Payment Filter */}
     <div className="relative group transition-all duration-300 hover:-translate-y-0.5">
-      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-        <FiCreditCard className="h-5 w-5 text-gray-400 group-hover:text-indigo-500 transition-colors duration-300" />
-      </div>
-      <select
+      <CustomDropdown
+        options={[
+          { value: '', label: 'All Payments' },
+          { value: 'pending', label: 'Pending' },
+          { value: 'paid', label: 'Paid' },
+          { value: 'failed', label: 'Failed' },
+          { value: 'refunded', label: 'Refunded' }
+        ]}
         value={paymentFilter}
-        onChange={(e) => setPaymentFilter(e.target.value)}
-        className="w-full pl-10 pr-8 py-2.5 text-gray-700 border border-gray-200 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent hover:border-indigo-300 bg-white cursor-pointer transition-all duration-300 hover:shadow-sm"
-      >
-        <option value="">All Payments</option>
-        <option value="pending">Pending</option>
-        <option value="paid">Paid</option>
-        <option value="failed">Failed</option>
-        <option value="refunded">Refunded</option>
-      </select>
-      <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-        <FiChevronDown className="h-5 w-5 text-gray-400 group-hover:text-indigo-500 transition-colors duration-300" />
-      </div>
+        onChange={(value) => setPaymentFilter(value as string)}
+        maxHeight="max-h-48"
+        icon={<FiCreditCard className="h-5 w-5" />}
+      />
     </div>
   </div>
 </div>
@@ -465,7 +461,6 @@ function formatDate(input: string | Date, formatString = 'MM/dd/yyyy'): string {
               <td className="px-3 sm:px-6 py-4 transition-colors duration-300">
                 <div>
                   <div className="text-sm font-medium text-gray-900 transition-colors duration-300">Order #{order.service_order_id}</div>
-                  <div className="text-xs sm:text-sm text-gray-600 transition-colors duration-300">User ID: {order.user_id}</div>
                   <div className="text-xs sm:text-sm text-gray-600 transition-colors duration-300">Pincode: {order.service_pincode}</div>
 
                 </div>
@@ -605,7 +600,7 @@ function formatDate(input: string | Date, formatString = 'MM/dd/yyyy'): string {
           </div>
 
           {/* Order Details */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <div className="bg-white border border-blue-200 rounded-lg p-4">
               <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
                 <CalendarIcon className="w-4 h-4 mr-2 text-blue-600" />
@@ -614,8 +609,21 @@ function formatDate(input: string | Date, formatString = 'MM/dd/yyyy'): string {
               <div className="space-y-2 text-sm text-gray-600">
                 <p><span className="font-medium">Order ID:</span> #{editingOrder.service_order_id}</p>
                 <p><span className="font-medium">Service:</span> {editingOrder.service_name}</p>
-                <p><span className="font-medium">Customer:</span> User #{editingOrder.user_id}</p>
                 <p><span className="font-medium">Booked On:</span> {formatDate(editingOrder.booking_date)}</p>
+              </div>
+            </div>
+
+            <div className="bg-white border border-blue-200 rounded-lg p-4">
+              <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
+                <svg className="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                Customer Information
+              </h3>
+              <div className="space-y-2 text-sm text-gray-600">
+                <p><span className="font-medium">Name:</span> {editingOrder.customer_name || 'N/A'}</p>
+                <p><span className="font-medium">Email:</span> {editingOrder.customer_email || 'N/A'}</p>
+                <p><span className="font-medium">Phone:</span> {editingOrder.customer_phone || 'N/A'}</p>
               </div>
             </div>
 
@@ -655,37 +663,37 @@ function formatDate(input: string | Date, formatString = 'MM/dd/yyyy'): string {
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Service Status
               </label>
-              <select
-                required
+              <CustomDropdown
+                options={[
+                  { value: '', label: 'Select Status' },
+                  { value: 'pending', label: 'Pending' },
+                  { value: 'scheduled', label: 'Scheduled' },
+                  { value: 'cancelled', label: 'Cancelled' },
+                  { value: 'rejected', label: 'Rejected' },
+                  { value: 'refunded', label: 'Refunded' }
+                ]}
                 value={formData.service_status}
-                onChange={(e) => setFormData({...formData, service_status: e.target.value})}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-              >
-                <option value="">Select Status</option>
-                <option value="pending">Pending</option>
-                <option value="scheduled">Scheduled</option>
-                <option value="cancelled">Cancelled</option>
-                <option value="rejected">Rejected</option>
-                <option value="refunded">Refunded</option>
-              </select>
+                onChange={(value) => setFormData({...formData, service_status: value as string})}
+                maxHeight="max-h-48"
+              />
             </div>
 
             <div className="bg-white border border-purple-200 rounded-lg p-4">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Payment Status
               </label>
-              <select
-                required
+              <CustomDropdown
+                options={[
+                  { value: '', label: 'Select Payment Status' },
+                  { value: 'pending', label: 'Pending' },
+                  { value: 'paid', label: 'Paid' },
+                  { value: 'failed', label: 'Failed' },
+                  { value: 'refunded', label: 'Refunded' }
+                ]}
                 value={formData.payment_status}
-                onChange={(e) => setFormData({...formData, payment_status: e.target.value})}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-              >
-                <option value="">Select Payment Status</option>
-                <option value="pending">Pending</option>
-                <option value="paid">Paid</option>
-                <option value="failed">Failed</option>
-                <option value="refunded">Refunded</option>
-              </select>
+                onChange={(value) => setFormData({...formData, payment_status: value as string})}
+                maxHeight="max-h-48"
+              />
             </div>
           </div>
 
@@ -718,21 +726,21 @@ function formatDate(input: string | Date, formatString = 'MM/dd/yyyy'): string {
 
         {/* Footer */}
        <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
-          <div className="flex justify-between items-center">
-            <div className="text-sm text-gray-600">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div className="text-sm text-gray-600 order-2 sm:order-1">
               Last updated: {formatDate(new Date())}
             </div>
-            <div className="flex space-x-3">
+            <div className="flex flex-row space-x-3 order-1 sm:order-2 w-full sm:w-auto">
               <button
                 onClick={() => setShowModal(false)}
-                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors duration-200"
+                className="flex-1 sm:flex-none px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors duration-200"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center space-x-2"
+                className="flex-1 sm:flex-none px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center space-x-2"
               >
                 {isSubmitting ? (
                   <>

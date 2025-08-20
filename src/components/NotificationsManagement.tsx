@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from './ToastContainer';
+import CustomDropdown from './CustomDropdown';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { 
   BellIcon, 
@@ -108,9 +109,17 @@ export default function NotificationsManagement() {
       if (data.success && data.notifications) {
         setNotifications(data.notifications);
         console.log('✅ Set notifications from data.notifications:', data.notifications.length);
+        
+        // Log unique notification types for debugging
+        const types = [...new Set(data.notifications.map((n: any) => n.type))];
+        console.log('📋 Available notification types:', types);
       } else {
         setNotifications(data);
         console.log('✅ Set notifications from data:', data.length);
+        
+        // Log unique notification types for debugging
+        const types = [...new Set(data.map((n: any) => n.type))];
+        console.log('📋 Available notification types:', types);
       }
       setError('');
       showSuccess('Notifications refreshed successfully');
@@ -126,12 +135,20 @@ export default function NotificationsManagement() {
   const filterNotifications = () => {
     let filtered = notifications;
 
+    console.log('🔍 Filtering notifications:', {
+      total: notifications.length,
+      searchTerm,
+      statusFilter,
+      typeFilter
+    });
+
     if (searchTerm) {
       filtered = filtered.filter(notification =>
         notification.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         notification.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
         notification.type.toLowerCase().includes(searchTerm.toLowerCase())
       );
+      console.log('🔍 After search filter:', filtered.length);
     }
 
     if (statusFilter) {
@@ -140,12 +157,15 @@ export default function NotificationsManagement() {
       } else if (statusFilter === 'unread') {
         filtered = filtered.filter(notification => notification.is_read === 0);
       }
+      console.log('🔍 After status filter:', filtered.length);
     }
 
     if (typeFilter) {
       filtered = filtered.filter(notification => notification.type === typeFilter);
+      console.log('🔍 After type filter:', filtered.length);
     }
 
+    console.log('🔍 Final filtered count:', filtered.length);
     setFilteredNotifications(filtered);
   };
 
@@ -164,27 +184,36 @@ export default function NotificationsManagement() {
   const markAsRead = async (notificationId: number) => {
     setIsProcessing(`read-${notificationId}`);
     try {
-      const response = await fetch(`/api/notifications/${notificationId}`, {
-        method: 'PATCH',
+      const response = await fetch('/api/notifications', {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_read: true })
+        body: JSON.stringify({ 
+          notification_id: notificationId, 
+          action: 'read' 
+        })
       });
 
       if (!response.ok) {
         throw new Error('Failed to mark notification as read');
       }
 
+      const result = await response.json();
+      
+      if (result.success) {
         setNotifications(prev => 
-        prev.map(notification => 
-          notification.id === notificationId 
-            ? { ...notification, is_read: 1 }
-            : notification
+          prev.map(notification => 
+            notification.id === notificationId 
+              ? { ...notification, is_read: 1 }
+              : notification
           )
         );
         showSuccess('Notification marked as read');
+      } else {
+        throw new Error(result.error || 'Failed to mark notification as read');
+      }
     } catch (err) {
       console.error('Error marking notification as read:', err);
-        showError('Failed to mark notification as read');
+      showError('Failed to mark notification as read');
     } finally {
       setIsProcessing(null);
     }
@@ -193,19 +222,30 @@ export default function NotificationsManagement() {
   const removeNotification = async (notificationId: number) => {
     setIsProcessing(`remove-${notificationId}`);
     try {
-      const response = await fetch(`/api/notifications/${notificationId}`, {
-        method: 'DELETE'
+      const response = await fetch('/api/notifications', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          notification_id: notificationId, 
+          action: 'remove' 
+        })
       });
 
       if (!response.ok) {
         throw new Error('Failed to remove notification');
       }
 
-      setNotifications(prev => prev.filter(notification => notification.id !== notificationId));
+      const result = await response.json();
+      
+      if (result.success) {
+        setNotifications(prev => prev.filter(notification => notification.id !== notificationId));
         showSuccess('Notification removed');
+      } else {
+        throw new Error(result.error || 'Failed to remove notification');
+      }
     } catch (err) {
       console.error('Error removing notification:', err);
-        showError('Failed to remove notification');
+      showError('Failed to remove notification');
     } finally {
       setIsProcessing(null);
     }
@@ -478,52 +518,60 @@ export default function NotificationsManagement() {
           </div>
         </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Filters & Search</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Search */}
-            <div className="relative">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search notifications..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
+      {/* Search and Filters */}
+      <div className="mb-6 space-y-4 sm:space-y-0 sm:flex sm:flex-row sm:gap-4 sm:items-center">
+        {/* Search Bar */}
+        <div className="relative sm:flex-1">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            placeholder="Search notifications..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-10"
+          />
+        </div>
 
+        {/* Filters Row - Always in one row */}
+        <div className="flex flex-row gap-4 sm:flex-1">
           {/* Status Filter */}
-          <div className="relative">
-            <FunnelIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <select
+          <div className="flex-1">
+            <CustomDropdown
+              options={[
+                { value: '', label: 'All Status' },
+                { value: 'read', label: 'Read' },
+                { value: 'unread', label: 'Unread' }
+              ]}
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
-            >
-              <option value="">All Status</option>
-              <option value="read">Read</option>
-              <option value="unread">Unread</option>
-            </select>
+              onChange={(value) => setStatusFilter(value as string)}
+              placeholder="All Status"
+              maxHeight="max-h-48"
+              icon={<FunnelIcon className="h-4 w-4" />}
+              className="h-10"
+            />
           </div>
 
           {/* Type Filter */}
-          <div className="relative">
-            <FunnelIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <select
+          <div className="flex-1">
+            <CustomDropdown
+              options={[
+                { value: '', label: 'All Types' },
+                { value: 'service_order_created', label: 'Service Order Created' },
+                { value: 'service_order_placed', label: 'Service Order Placed' },
+                { value: 'service_order_accepted', label: 'Service Order Accepted' },
+                { value: 'service_order_rejected', label: 'Service Order Rejected' },
+                { value: 'payment_received', label: 'Payment Received' },
+                { value: 'service_completed', label: 'Service Completed' }
+              ]}
               value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
-            >
-              <option value="">All Types</option>
-              <option value="service_order_created">Service Order Created</option>
-              <option value="service_order_placed">Service Order Placed</option>
-              <option value="service_order_accepted">Service Order Accepted</option>
-              <option value="service_order_rejected">Service Order Rejected</option>
-              <option value="payment_received">Payment Received</option>
-              <option value="service_completed">Service Completed</option>
-            </select>
+              onChange={(value) => setTypeFilter(value as string)}
+              placeholder="All Types"
+              maxHeight="max-h-48"
+              icon={<FunnelIcon className="h-4 w-4" />}
+              className="h-10"
+            />
           </div>
         </div>
       </div>
@@ -544,12 +592,12 @@ export default function NotificationsManagement() {
                   notification.is_read === 0 ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
                 }`}
             >
-              {/* Initial View */}
-                <div className="flex items-start space-x-4">
+                              {/* Initial View */}
+                <div className="flex items-start space-x-2 sm:space-x-4">
                   {/* Notification Icon */}
-                  <div className="flex-shrink-0">
-                    <div className="p-2 rounded-full bg-gray-100">
-                      <span className="text-lg">{getNotificationIcon(notification.type)}</span>
+                  <div className="flex-shrink-0 w-6 sm:w-auto">
+                    <div className="p-1 sm:p-2 rounded-full bg-gray-100 w-6 h-6 sm:w-auto sm:h-auto flex items-center justify-center">
+                      <span className="text-sm sm:text-lg">{getNotificationIcon(notification.type)}</span>
                     </div>
                   </div>
 
@@ -563,7 +611,7 @@ export default function NotificationsManagement() {
                           </h3>
 
                           {notification.description && notification.type !== 'service_order_created' && notification.type !== 'service_order_placed' && (
-                            <span className="text-xs text-blue-500 font-medium">(Click to expand)</span>
+                            <span className="hidden sm:inline text-xs text-blue-500 font-medium">(Click to expand)</span>
                           )}
                         </div>
                         
@@ -583,21 +631,25 @@ export default function NotificationsManagement() {
                 </div>
                 
                                               {/* Action Buttons */}
-                        <div className="flex items-center space-x-2 ml-4">
-                          {notification.is_read === 0 && notification.type !== 'service_order_created' && notification.type !== 'service_order_placed' && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                markAsRead(notification.id);
-                              }}
-                              disabled={isProcessing === `read-${notification.id}`}
-                              className="text-green-600 hover:text-green-800 disabled:opacity-50 text-sm font-medium"
-                            >
-                              Mark as Read
-                            </button>
-                          )}
+                        <div className="flex items-center justify-between ml-4 mt-2 sm:mt-0">
+                          <div className="flex items-center space-x-2">
+                            {notification.is_read === 0 && notification.type !== 'service_order_created' && notification.type !== 'service_order_placed' && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  markAsRead(notification.id);
+                                }}
+                                disabled={isProcessing === `read-${notification.id}`}
+                                className="text-green-600 hover:text-green-800 disabled:opacity-50 p-1 rounded"
+                                title="Mark as Read"
+                              >
+                                <CheckIcon className="h-4 w-4 sm:hidden" />
+                                <span className="hidden sm:inline text-sm font-medium">Mark as Read</span>
+                              </button>
+                            )}
+                          </div>
                           
-                          {/* Remove button - hidden for service requests */}
+                          {/* Remove button - positioned to the far right */}
                           {notification.type !== 'service_order_created' && notification.type !== 'service_order_placed' && (
                             <button
                               onClick={(e) => {
@@ -749,91 +801,89 @@ export default function NotificationsManagement() {
                           )}
                           
                                                     {/* Notification Details */}
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
-                              <span className="text-sm font-medium text-gray-900">
-                                {getNotificationIcon(notification.type || '')} {notification.type ? notification.type.replace('_', ' ').toUpperCase() : 'UNKNOWN'}
+                          <div className="flex items-center space-x-3 mb-4">
+                            <span className="text-sm font-medium text-gray-900">
+                              {getNotificationIcon(notification.type || '')} {notification.type ? notification.type.replace('_', ' ').toUpperCase() : 'UNKNOWN'}
+                            </span>
+                          </div>
+                          
+                          {/* Status Display for Processed Service Requests */}
+                          {(notification.type === 'service_order_accepted' || notification.type === 'service_order_rejected') && (
+                            <div className="flex items-center space-x-2 mb-4">
+                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                                notification.type === 'service_order_accepted' 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : 'bg-red-100 text-red-800'
+                              }`}>
+                                {notification.type === 'service_order_accepted' ? (
+                                  <>
+                                    <CheckIcon className="h-4 w-4 mr-1" />
+                                    Accepted
+                                  </>
+                                ) : (
+                                  <>
+                                    <XMarkIcon className="h-4 w-4 mr-1" />
+                                    Rejected
+                                  </>
+                                )}
                               </span>
                             </div>
-                    
-                            {/* Action Buttons for Service Requests */}
-                            {(notification.type === 'service_order_created' || notification.type === 'service_order_placed') && (
-                              <div className="flex items-center space-x-3">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleServiceRequestAction(notification.id, 'accept');
-                                  }}
-                                  disabled={isProcessing === `accept-${notification.id}`}
-                                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                                    isProcessing === `accept-${notification.id}`
-                                      ? 'text-white bg-green-600 cursor-not-allowed'
-                                      : 'text-white bg-green-600 hover:bg-green-700'
-                                  }`}
-                                >
-                                  {isProcessing === `accept-${notification.id}` ? (
-                                    <>
-                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline"></div>
-                                      Accepting...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <CheckIcon className="h-4 w-4 mr-1 inline" />
-                                      Accept
-                                    </>
-                                  )}
-                                </button>
-                                
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleServiceRequestAction(notification.id, 'reject');
-                                  }}
-                                  disabled={isProcessing === `reject-${notification.id}`}
-                                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                                    isProcessing === `reject-${notification.id}`
-                                      ? 'text-white bg-red-600 cursor-not-allowed'
-                                      : 'text-white bg-red-600 hover:bg-red-700'
-                                  }`}
-                                >
-                                  {isProcessing === `reject-${notification.id}` ? (
-                                    <>
-                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline"></div>
-                                      Rejecting...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <XMarkIcon className="h-4 w-4 mr-1 inline" />
-                                      Reject
-                                    </>
-                                  )}
-                                </button>
-                              </div>
-                            )}
-                            
-                            {/* Status Display for Processed Service Requests */}
-                            {(notification.type === 'service_order_accepted' || notification.type === 'service_order_rejected') && (
-                              <div className="flex items-center space-x-2">
-                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                                  notification.type === 'service_order_accepted' 
-                                    ? 'bg-green-100 text-green-800' 
-                                    : 'bg-red-100 text-red-800'
-                                }`}>
-                                  {notification.type === 'service_order_accepted' ? (
-                                    <>
-                                      <CheckIcon className="h-4 w-4 mr-1" />
-                                      Accepted
-                                    </>
-                                  ) : (
-                                    <>
-                                      <XMarkIcon className="h-4 w-4 mr-1" />
-                                      Rejected
-                                    </>
-                                  )}
-                                </span>
-                              </div>
-                            )}
-                  </div>
+                          )}
+                          
+                          {/* Action Buttons for Service Requests - Dedicated Row */}
+                          {(notification.type === 'service_order_created' || notification.type === 'service_order_placed') && (
+                            <div className="flex flex-row items-center justify-start space-x-3 pt-4 border-t border-gray-200">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleServiceRequestAction(notification.id, 'accept');
+                                }}
+                                disabled={isProcessing === `accept-${notification.id}`}
+                                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                                  isProcessing === `accept-${notification.id}`
+                                    ? 'text-white bg-green-600 cursor-not-allowed'
+                                    : 'text-white bg-green-600 hover:bg-green-700'
+                                }`}
+                              >
+                                {isProcessing === `accept-${notification.id}` ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline"></div>
+                                    Accepting...
+                                  </>
+                                ) : (
+                                  <>
+                                    <CheckIcon className="h-4 w-4 mr-1 inline" />
+                                    Accept
+                                  </>
+                                )}
+                              </button>
+                              
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleServiceRequestAction(notification.id, 'reject');
+                                }}
+                                disabled={isProcessing === `reject-${notification.id}`}
+                                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                                  isProcessing === `reject-${notification.id}`
+                                    ? 'text-white bg-red-600 cursor-not-allowed'
+                                    : 'text-white bg-red-600 hover:bg-red-700'
+                                }`}
+                              >
+                                {isProcessing === `reject-${notification.id}` ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline"></div>
+                                    Rejecting...
+                                  </>
+                                ) : (
+                                  <>
+                                    <XMarkIcon className="h-4 w-4 mr-1 inline" />
+                                    Reject
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}

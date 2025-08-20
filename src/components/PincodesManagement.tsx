@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { PlusIcon, PencilIcon, TrashIcon, MapPinIcon, MagnifyingGlassIcon, FunnelIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import FormCard from './FormCard';
 import { useToast } from './ToastContainer';
+import CustomDropdown from './CustomDropdown';
 import {
        // Location pin icon
   WrenchScrewdriverIcon, // Service/tools icon
@@ -308,6 +309,17 @@ export default function PincodesManagement() {
         <span className="group-hover:font-medium transition-all duration-300">Export CSV</span>
       </button>
       
+      <button
+        onClick={() => {
+          setEditingPincode(null);
+          resetForm();
+          setShowModal(true);
+        }}
+        className="flex-1 sm:flex-none flex items-center justify-center px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 transform hover:scale-[1.03] hover:shadow-lg hover:-translate-y-0.5 active:scale-95 shadow-md"
+      >
+        <FiPlus className="h-4 w-4 sm:h-5 sm:w-5 mr-2 transition-transform duration-300 group-hover:scale-110" />
+        <span className="group-hover:font-medium transition-all duration-300">Add Pincode</span>
+      </button>
 
     </div>
   </div>
@@ -324,7 +336,7 @@ export default function PincodesManagement() {
         placeholder="Search pincodes by number, city or service area..."
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
-        className="w-full pl-10 pr-4 py-2.5 text-gray-700 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent hover:border-blue-300 transition-all duration-300 bg-white"
+        className="w-full pl-10 pr-4 h-10 text-gray-700 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent hover:border-blue-300 transition-all duration-300 bg-white"
       />
       {searchTerm && (
         <button 
@@ -338,24 +350,21 @@ export default function PincodesManagement() {
 
     {/* Service Filter - Right aligned with exact width needed */}
     <div className="relative group transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg w-full sm:w-[200px]">
-      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-        <FiFilter className="h-5 w-5 text-gray-400 group-hover:text-purple-500 transition-all duration-300 group-hover:scale-110" />
-      </div>
-      <select
+      <CustomDropdown
+        options={[
+          { value: '', label: 'All Services' },
+          ...services.map((service) => ({
+            value: service.service_id,
+            label: service.name
+          }))
+        ]}
         value={serviceFilter}
-        onChange={(e) => setServiceFilter(e.target.value)}
-        className="w-full pl-10 pr-8 py-2.5 text-gray-700 border border-gray-200 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent hover:border-purple-300 bg-white cursor-pointer transition-all duration-300"
-      >
-        <option value="">All Services</option>
-        {services.map((service) => (
-          <option key={service.service_id} value={service.service_id}>
-            {service.name}
-          </option>
-        ))}
-      </select>
-      <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-        <FiChevronDown className="h-5 w-5 text-gray-400 group-hover:text-purple-500 transition-all duration-300 group-hover:scale-110" />
-      </div>
+        onChange={(value) => setServiceFilter(value as string)}
+        placeholder="All Services"
+        maxHeight="max-h-48"
+        icon={<FiFilter className="h-5 w-5" />}
+        className="h-10"
+      />
     </div>
   </div>
 </div>
@@ -463,7 +472,7 @@ export default function PincodesManagement() {
 )}
       
 {showModal && (
-  <div className="min-h-screen bg-gray-50 flex flex-col transition-all duration-300 ease-in-out">
+  <div className="bg-gray-50 flex flex-col transition-all duration-300 ease-in-out">
     {/* Fixed Header */}
     <div className="bg-white sticky top-[60px] shadow-sm border-b border-gray-200 px-6 py-4 transition-all duration-300 hover:shadow-md">
       <div className="max-w-6xl mx-auto">
@@ -505,9 +514,9 @@ export default function PincodesManagement() {
     </div>
 
     {/* Scrollable Main Content */}
-    <div className="flex-1 px-6 py-8 overflow-y-auto transition-all duration-300 ease-in-out">
+    <div className="flex-1 px-6 py-4 overflow-y-auto transition-all duration-300 ease-in-out">
       <div className="max-w-6xl mx-auto">
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Service Information Section */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-blue-100">
             <div className="p-6 border-b border-gray-200">
@@ -529,19 +538,21 @@ export default function PincodesManagement() {
                   <label className="block text-sm font-semibold text-gray-700 mb-2 transition-colors duration-300 hover:text-gray-900">
                     Service *
                   </label>
-                  <select
-                    required
+                  <CustomDropdown
+                    options={[
+                      { value: '', label: 'Select a service' },
+                      ...services.map((service) => ({
+                        value: service.service_id,
+                        label: service.name
+                      }))
+                    ]}
                     value={formData.service_id}
-                    onChange={(e) => setFormData({...formData, service_id: e.target.value})}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:border-blue-300"
-                  >
-                    <option value="">Select a service</option>
-                    {services.map((service) => (
-                      <option key={service.service_id} value={service.service_id}>
-                        {service.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(value) => setFormData({...formData, service_id: value as string})}
+                    placeholder="Select a service"
+                    maxHeight="max-h-48"
+                    icon={<WrenchScrewdriverIcon className="h-5 w-5" />}
+                    className="h-12"
+                  />
                 </div>
               </div>
             </div>
@@ -562,8 +573,8 @@ export default function PincodesManagement() {
                 Enter the pincode for service availability
               </p>
             </div>
-            <div className="p-6">
-              <div className="space-y-6">
+            <div className="p-6 pb-4">
+              <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2 transition-colors duration-300 hover:text-gray-900">
                     Pincode *
@@ -595,7 +606,7 @@ export default function PincodesManagement() {
     </div>
 
     {/* Footer */}
-    <div className="bg-white border-t border-gray-200 px-6 py-4 transition-all duration-300 hover:shadow-md">
+    <div className="bg-white border-t border-gray-200 px-6 py-2">
       <div className="max-w-6xl mx-auto">
         <div className="flex gap-4">
           <button
@@ -606,7 +617,7 @@ export default function PincodesManagement() {
               setFormData({ service_id: "", pincode: "" }); // Reset form
             }}
             disabled={isSubmitting}
-            className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-6 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
@@ -614,7 +625,7 @@ export default function PincodesManagement() {
             type="button"
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-lg hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+            className="flex-1 px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-lg hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
           >
             {isSubmitting ? (
               <>

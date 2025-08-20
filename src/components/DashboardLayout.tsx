@@ -133,8 +133,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     {/* Right section - User Info */}
     <div className="flex items-center space-x-2 sm:space-x-4">
-      {/* Notification Bell */}
+      {/* Desktop Notification Bell */}
       <div className="hidden sm:block">
+        <NotificationBell />
+      </div>
+      
+      {/* Mobile Notification Bell */}
+      <div className="sm:hidden">
         <NotificationBell />
       </div>
       
@@ -222,10 +227,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-900">{vendor?.vendor_name || 'Vendor'}</p>
                     <p className="text-xs text-gray-500">{vendor?.contact_email || 'vendor@example.com'}</p>
-                  </div>
-                  {/* Mobile notification bell */}
-                  <div className="sm:hidden">
-                    <NotificationBell />
                   </div>
                 </div>
                 <button

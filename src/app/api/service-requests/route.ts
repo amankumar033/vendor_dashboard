@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
     await executeQuery(updateQuery, [newTitle, newMessage, notification_id]);
 
     // Update service order status in service_orders table
-    const serviceOrderStatus = action === 'accept' ? 'confirmed' : 'rejected';
+    const serviceOrderStatus = action === 'accept' ? 'scheduled' : 'rejected';
     const updateServiceOrderQuery = `
       UPDATE service_orders 
       SET service_status = ?, 

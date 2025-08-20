@@ -44,8 +44,6 @@ export default function ServiceRequestsManagement() {
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
 
   useEffect(() => {
     console.log('Vendor data:', vendor);
@@ -57,9 +55,7 @@ export default function ServiceRequestsManagement() {
     }
   }, [vendor]);
 
-  useEffect(() => {
-    filterRequests();
-  }, [serviceRequests, searchTerm, statusFilter]);
+
 
   const fetchServiceRequests = async () => {
     try {
@@ -72,6 +68,7 @@ export default function ServiceRequestsManagement() {
       
       if (data.success) {
         setServiceRequests(data.serviceRequests);
+        setFilteredRequests(data.serviceRequests);
         console.log('Service requests set:', data.serviceRequests);
       } else {
         setError('Failed to fetch service requests');
@@ -86,31 +83,7 @@ export default function ServiceRequestsManagement() {
     }
   };
 
-  const filterRequests = () => {
-    let filtered = serviceRequests;
 
-    if (searchTerm) {
-      filtered = filtered.filter(request => {
-        const metadata = typeof request.metadata === 'string' 
-          ? JSON.parse(request.metadata || '{}') 
-          : request.metadata || {};
-        return (
-          request.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          request.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          metadata.service_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          metadata.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          metadata.user_name?.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-      });
-    }
-
-    if (statusFilter) {
-      const isRead = statusFilter === 'read';
-      filtered = filtered.filter(request => request.is_read === isRead);
-    }
-
-    setFilteredRequests(filtered);
-  };
 
   const handleAction = async (requestId: number, action: 'accept' | 'reject') => {
     const processingKey = `${action}-${requestId}`;
@@ -285,33 +258,7 @@ export default function ServiceRequestsManagement() {
           </div>
         </div>
 
-        {/* Search and Filter */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search by service name, customer name..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300"
-              />
-            </div>
-          </div>
 
-          <div className="sm:w-auto">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300"
-            >
-              <option value="">All Status</option>
-              <option value="unread">Unread</option>
-              <option value="read">Read</option>
-            </select>
-          </div>
-        </div>
       </div>
 
       {/* Error Message */}
