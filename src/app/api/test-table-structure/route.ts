@@ -12,8 +12,8 @@ export async function GET(request: NextRequest) {
     let sampleData;
     try {
       sampleData = await executeQuery(sampleQuery, []) as any[];
-    } catch (error) {
-      sampleData = { error: error.message };
+    } catch (error: any) {
+      sampleData = { error: error?.message || 'Unknown error' };
     }
     
     return NextResponse.json({

@@ -241,12 +241,12 @@ export async function POST(request: NextRequest) {
             await executeQuery(insertPincodeQuery, [uniqueId, service_id, pincode]);
             console.log(`✅ Added pincode ${pincode} to new service ${service_id} with ID ${uniqueId}`);
           }
-        } catch (syncError) {
+        } catch (syncError: any) {
           console.error('❌ Error syncing pincodes for new service:', syncError);
           console.error('❌ Error details:', {
-            message: syncError.message,
-            code: syncError.code,
-            sqlMessage: syncError.sqlMessage
+            message: syncError?.message || 'Unknown error',
+            code: syncError?.code || 'Unknown code',
+            sqlMessage: syncError?.sqlMessage || 'Unknown SQL error'
           });
           // Don't fail the service creation if pincode sync fails
         }
