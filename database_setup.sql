@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS Services (
     base_price DECIMAL(10,2) NOT NULL,
     duration_minutes INT NOT NULL,
     is_available TINYINT(1) DEFAULT 1,
-    service_pincodes TEXT,
+    service_pincodes VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_vendor_id (vendor_id),

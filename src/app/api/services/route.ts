@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate and normalize service_pincodes for multiple comma-separated pincodes
+    // Validate and prepare service_pincodes
     let normalizedPincodes = '';
     if (typeof service_pincodes === 'string' && service_pincodes.trim().length > 0) {
       // Split by comma, clean each pincode, and validate
@@ -80,8 +80,12 @@ export async function POST(request: NextRequest) {
         );
       }
       
-      // Store all pincodes in services table
+      // Store comma-separated pincodes for services table (limit to 100 chars to be safe)
       normalizedPincodes = pincodeArray.join(', ');
+      if (normalizedPincodes.length > 100) {
+        // If too long, truncate and add note
+        normalizedPincodes = normalizedPincodes.substring(0, 95) + '...';
+      }
     }
     // Begin transactional, vendor-scoped ID generation
     const connection = await createConnection();
@@ -195,31 +199,59 @@ export async function POST(request: NextRequest) {
       await connection.commit();
       inTransaction = false;
 
-      // Sync pincodes to service_pincodes table
+      // Handle pincodes in ServicePincodes table
+      console.log('🔍 Checking service_pincodes:', service_pincodes, 'Type:', typeof service_pincodes);
+      
       if (typeof service_pincodes === 'string' && service_pincodes.trim().length > 0) {
         try {
-          // Parse all pincodes (not just the limited ones) for service_pincodes table
-          const allPincodes = service_pincodes.split(',')
-            .map(pin => pin.trim().replace(/\D/g, ''))
-            .filter(pin => pin.length === 6);
+          console.log('🔍 Processing pincodes:', service_pincodes);
+          
+          // Parse all pincodes for ServicePincodes table
+          const rawPincodes = service_pincodes.split(',').map(pin => pin.trim());
+          console.log('🔍 Raw pincodes after split:', rawPincodes);
+          
+          const allPincodes = rawPincodes
+            .map(pin => pin.replace(/\D/g, ''))
+            .filter(pin => pin.length > 0);
+          
+          console.log('🔍 Pincodes after cleaning:', allPincodes);
+          
+          // Filter for 6-digit pincodes
+          const validPincodes = allPincodes.filter(pin => pin.length === 6);
+          console.log('🔍 6-digit pincodes:', validPincodes);
+          
+          console.log('🔍 Valid pincodes found:', validPincodes);
+          console.log('🔍 Number of valid pincodes:', validPincodes.length);
+
+          if (validPincodes.length === 0) {
+            console.log('⚠️ No valid 6-digit pincodes found after filtering');
+          }
 
           // Create individual rows for each pincode
-          for (const pincode of allPincodes) {
-            const timestamp = Date.now();
-            const randomId = Math.floor(Math.random() * 1000);
-            const uniqueId = `${timestamp}${randomId}`;
+          for (let i = 0; i < validPincodes.length; i++) {
+            const pincode = validPincodes[i];
+            // Generate a unique ID using timestamp + index
+            const uniqueId = Date.now() + i;
             
             const insertPincodeQuery = `
               INSERT INTO service_pincodes (id, service_id, service_pincodes)
               VALUES (?, ?, ?)
             `;
+            console.log('🔍 Executing query:', insertPincodeQuery, 'with params:', [uniqueId, service_id, pincode]);
             await executeQuery(insertPincodeQuery, [uniqueId, service_id, pincode]);
-            console.log(`✅ Added pincode ${pincode} to new service ${service_id}`);
+            console.log(`✅ Added pincode ${pincode} to new service ${service_id} with ID ${uniqueId}`);
           }
         } catch (syncError) {
           console.error('❌ Error syncing pincodes for new service:', syncError);
+          console.error('❌ Error details:', {
+            message: syncError.message,
+            code: syncError.code,
+            sqlMessage: syncError.sqlMessage
+          });
           // Don't fail the service creation if pincode sync fails
         }
+      } else {
+        console.log('⚠️ service_pincodes is empty or not a string');
       }
 
       // Create notification for admin when service is created

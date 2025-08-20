@@ -87,11 +87,13 @@ export async function PUT(
       );
     }
 
-    // Normalize service_pincodes to handle multiple comma-separated pincodes
-    let normalizedPincodes = '';
+    // Process pincodes for validation and storage
+    let pincodeArray: string[] = [];
+    let pincodesString = '';
+    
     if (typeof service_pincodes === 'string' && service_pincodes.trim().length > 0) {
       // Split by comma, clean each pincode, and validate
-      const pincodeArray = service_pincodes.split(',')
+      pincodeArray = service_pincodes.split(',')
         .map(pin => pin.trim().replace(/\D/g, ''))
         .filter(pin => pin.length === 6);
       
@@ -104,8 +106,12 @@ export async function PUT(
         );
       }
       
-      // Store all pincodes in services table
-      normalizedPincodes = pincodeArray.join(', ');
+      // Create comma-separated string for services table (limit to 100 chars to be safe)
+      pincodesString = pincodeArray.join(', ');
+      if (pincodesString.length > 100) {
+        // If too long, truncate and add note
+        pincodesString = pincodesString.substring(0, 95) + '...';
+      }
     }
 
     const updateQuery = `
@@ -117,10 +123,10 @@ export async function PUT(
 
     await executeQuery(updateQuery, [
       name, description, service_category_id, type, base_price,
-      duration_minutes, is_available || 1, normalizedPincodes || '', service_id, vendor_id
+      duration_minutes, is_available || 1, pincodesString, service_id, vendor_id
     ]);
 
-    // Sync pincodes to service_pincodes table
+    // Handle pincodes in ServicePincodes table
     if (typeof service_pincodes === 'string' && service_pincodes.trim().length > 0) {
       try {
         // First, remove all existing pincodes for this service
@@ -131,23 +137,19 @@ export async function PUT(
         await executeQuery(deleteExistingQuery, [service_id]);
         console.log(`🗑️ Removed existing pincodes for service ${service_id}`);
 
-        // Parse all pincodes (not just the limited ones) for service_pincodes table
-        const allPincodes = service_pincodes.split(',')
-          .map(pin => pin.trim().replace(/\D/g, ''))
-          .filter(pin => pin.length === 6);
-
+        // Use the already processed pincodeArray for service_pincodes table
         // Create individual rows for each pincode
-        for (const pincode of allPincodes) {
-          const timestamp = Date.now();
-          const randomId = Math.floor(Math.random() * 1000);
-          const uniqueId = `${timestamp}${randomId}`;
+        for (let i = 0; i < pincodeArray.length; i++) {
+          const pincode = pincodeArray[i];
+          // Generate a unique ID using timestamp + index
+          const uniqueId = Date.now() + i;
           
           const insertPincodeQuery = `
             INSERT INTO service_pincodes (id, service_id, service_pincodes)
             VALUES (?, ?, ?)
           `;
           await executeQuery(insertPincodeQuery, [uniqueId, service_id, pincode]);
-          console.log(`✅ Added pincode ${pincode} to service ${service_id}`);
+          console.log(`✅ Added pincode ${pincode} to service ${service_id} with ID ${uniqueId}`);
         }
       } catch (syncError) {
         console.error('❌ Error syncing pincodes:', syncError);

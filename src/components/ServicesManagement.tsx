@@ -1059,27 +1059,13 @@ const fetchServices = async () => {
                         value={formData.service_pincodes}
                         onChange={(e) => {
                           const input = e.target.value;
-                          const cursorPosition = e.target.selectionStart || 0;
                           
-                          // Only allow digits, commas, and spaces
+                          // Allow digits, commas, and spaces - store as-is for better UX
                           const cleaned = input.replace(/[^\d,\s]/g, '');
                           
-                          // Process the cleaned input
-                          const pincodes = cleaned
-                            .split(',')
-                            .map(pin => pin.trim().replace(/\D/g, '').slice(0, 6))
-                            .filter(pin => pin.length > 0) // Remove empty pincodes
-                            .join(', ');
-                          
-                          setFormData({ ...formData, service_pincodes: pincodes });
-                          
-                          // Restore cursor position after state update
-                          setTimeout(() => {
-                            const inputElement = e.target;
-                            const newPosition = Math.min(cursorPosition, pincodes.length);
-                            inputElement.setSelectionRange(newPosition, newPosition);
-                          }, 0);
+                          setFormData({ ...formData, service_pincodes: cleaned });
                         }}
+                        maxLength={500}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
                         placeholder="Enter pincodes separated by commas (e.g., 201301, 201302, 201303)"
                       />
